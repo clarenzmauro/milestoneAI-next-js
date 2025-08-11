@@ -50,7 +50,7 @@ const nextConfig: NextConfig = {
           "style-src 'self' 'unsafe-inline' https:",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data: https:",
-          "connect-src 'self' https://*.convex.cloud https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com https://generativelanguage.googleapis.com https://*.googleapis.com https://clerk-telemetry.com",
+          "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com https://generativelanguage.googleapis.com https://*.googleapis.com https://clerk-telemetry.com",
           "worker-src 'self' blob:",
           // Allow Clerk iFrames to render auth widgets
           "frame-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev",
