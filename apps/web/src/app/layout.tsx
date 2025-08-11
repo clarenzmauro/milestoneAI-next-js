@@ -1,41 +1,40 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "../index.css";
-import Providers from "@/components/providers";
-import Header from "@/components/header";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import type { Metadata } from 'next';
+import './index.css';
+import Providers from './providers';
+import { ClerkProvider } from '@clerk/nextjs';
 
 export const metadata: Metadata = {
-  title: "milestoneAI-next-js",
-  description: "milestoneAI-next-js",
+  title: 'MilestoneAI',
+  description: 'Generate and track your 90-day plan with AI assistance.',
 };
 
+/**
+ * @description
+ * Root layout for the Next.js App Router. Sets up global HTML scaffolding and wraps
+ * the application with shared providers (authentication, data, and app state).
+ *
+ * @receives data from:
+ * - None: Framework entry point for all routes in `app/`.
+ *
+ * @sends data to:
+ * - providers.tsx; Providers: Supplies Clerk, Convex (when configured), and Plan context
+ * - All route segments as children
+ *
+ * @sideEffects:
+ * - Initializes client-side providers and global styles for the entire app.
+ */
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
-            <Header />
-            {children}
-          </div>
-        </Providers>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <Providers>{children}</Providers>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
+
+
