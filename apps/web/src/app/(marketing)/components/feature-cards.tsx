@@ -16,25 +16,25 @@ interface Feature {
 const features: Feature[] = [
   {
     title: 'AI-Powered Planning',
-    description: 'Turn goals into a clear, adaptive 90-day roadmap in seconds.',
+    description: 'Instantly generate detailed 90-day roadmaps.',
     imageSrc: aiPoweredPlanningImg,
     imageAlt: 'Illustration showing AI building a plan',
   },
   {
-    title: 'Conversational Guidance',
-    description: 'Chat to refine milestones, resolve blockers, and adjust scope.',
+    title: 'Interactive Chat',
+    description: 'Discuss and refine plans with conversational AI.',
     imageSrc: interactiveChatImg,
     imageAlt: 'Illustration of interactive chat guidance',
   },
   {
     title: 'Progress Tracking',
-    description: 'Visualize progress across weeks and milestones with clarity.',
+    description: 'Monitor milestones daily, weekly, and monthly.',
     imageSrc: progressTrackingImg,
     imageAlt: 'Progress tracking visualization',
   },
   {
     title: 'Time-Aware Suggestions',
-    description: 'Stay on track with smart nudges and calendar-friendly pacing.',
+    description: 'Adaptive plans that evolve with you.',
     imageSrc: realTimeUpdatesImg,
     imageAlt: 'Real-time updates and reminders',
   },
@@ -47,20 +47,23 @@ export default function FeatureCards() {
         {features.map((feature) => (
           <article
             key={feature.title}
-            className="rounded-lg border p-6 transition-shadow motion-reduce:transition-none"
+            className="group relative overflow-hidden rounded-lg border p-6 text-center transition-shadow motion-reduce:transition-none"
             style={{
-              backgroundColor: 'var(--surface-card)',
+              background:
+                'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
               borderColor: 'var(--border-subtle)',
             }}
           >
-            <Image
-              src={feature.imageSrc}
-              alt={feature.imageAlt}
-              width={48}
-              height={48}
-              className="mb-4 h-12 w-12 object-contain"
-              priority
-            />
+            <div className="relative mx-auto mb-6 h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 lg:h-32 lg:w-32">
+              <Image
+                src={feature.imageSrc}
+                alt={feature.imageAlt}
+                width={128}
+                height={128}
+                className="mx-auto h-20 w-20 object-contain sm:h-24 sm:w-24 md:h-28 md:w-28 lg:h-32 lg:w-32"
+                priority
+              />
+            </div>
             <h3 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
               {feature.title}
             </h3>
