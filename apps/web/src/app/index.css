@@ -42,6 +42,50 @@
   --button-disabled-text: #6c757d; /* Text color for disabled buttons */
 
   /* Add other global variables as needed */
+  
+  /* Marketing neutrals */
+  --neutral-50: #FFFFFF;
+  --neutral-100: #F4F4F5;
+  --neutral-200: #E4E4E7;
+  --neutral-400: #A1A1AA;
+  --neutral-500: #71717A;
+  --neutral-900: #18181B;
+  --neutral-950: #0D0D0D;
+  --neutral-980: #09090B;
+  --black: #000000;
+
+  /* Marketing accents */
+  --accent-cyan: #22D3EE;
+  --accent-teal: #44B2B8;
+  --accent-cyan-2: #06B6D4;
+  --accent-blue-8: #1E40AF;
+  --accent-sky: #5EB0EF;
+  --accent-gray: #C7C7C7;
+
+  /* Opacity helpers */
+  --white-10: rgba(255, 255, 255, 0.10);
+  --white-001: rgba(255, 255, 255, 0.002); /* FFFFFF 0.2% per design */
+  --neutral-900-50: rgba(24, 24, 27, 0.50);
+  --black-0: rgba(0, 0, 0, 0.00);
+  --neutral-400-80: rgba(161, 161, 170, 0.80);
+
+  /* Text and surfaces for marketing */
+  --text-primary: var(--neutral-200);
+  --text-secondary: var(--neutral-400);
+  --text-muted: var(--neutral-500);
+  --text-inverse: var(--neutral-50);
+  --bg-deep: var(--neutral-980);
+  --bg-hero: var(--neutral-950);
+  --surface-card: var(--neutral-900-50);
+  --border-subtle: var(--white-10);
+
+  /* Gradients */
+  --grad-hero-halo: radial-gradient(circle at 50% 0%, var(--accent-sky) 50%, var(--black-0) 70%);
+  --grad-ambient: radial-gradient(circle at 50% 50%, var(--accent-gray) 5%, var(--black-0) 60%);
+  --grad-cta: linear-gradient(90deg, var(--accent-cyan-2) 0%, var(--accent-blue-8) 100%);
+  --grad-glow-rail: linear-gradient(90deg, var(--black-0) 0%, var(--accent-cyan) 90%, var(--black-0) 100%);
+  --grad-cyan-rail: linear-gradient(90deg, var(--black-0) 0%, var(--accent-teal) 100%, var(--black-0) 100%);
+  --grad-divider-vertical: linear-gradient(180deg, #FFFFFF 0%, #71717A 100%);
 }
 
 /* Basic Reset */
@@ -66,8 +110,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  background-color: var(--background-primary); /* Use variable */
-  color: var(--text-primary); /* Use variable */
+  background-color: var(--background-primary); /* App default */
+  color: var(--text-primary); /* Marketing default text */
 }
 
 /* Explicitly set default styles for h1 to address browser warning */
@@ -104,3 +148,11 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Gradient utility helpers for marketing */
+.bg-hero-halo { background-image: var(--grad-hero-halo); }
+.bg-ambient { background-image: var(--grad-ambient); }
+.bg-cta { background-image: var(--grad-cta); }
+.bg-glow-rail { background-image: var(--grad-glow-rail); }
+.bg-cyan-rail { background-image: var(--grad-cyan-rail); }
+.bg-divider-vertical { background-image: var(--grad-divider-vertical); }
