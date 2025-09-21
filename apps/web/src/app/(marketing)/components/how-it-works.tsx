@@ -47,7 +47,7 @@ export default function HowItWorks() {
         ))}
       </div>
 
-      <div className="mt-12 rounded-lg p-8" style={{ backgroundImage: 'var(--grad-ambient)', backgroundColor: 'var(--bg-hero)' }}>
+      <div className="mt-12 rounded-lg p-8" style={{ background: 'transparent' }}>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-base font-medium" style={{ color: 'var(--text-inverse)' }}>
             Ready to hit your milestone?

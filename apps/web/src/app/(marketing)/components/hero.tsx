@@ -3,7 +3,6 @@ import Link from 'next/link';
 export default function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-hero-halo" aria-hidden="true" />
       <div className="relative mx-auto max-w-7xl px-6 py-20">
         <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl" style={{ color: 'var(--text-inverse)' }}>
           Flexible Planning, Powered by AI
