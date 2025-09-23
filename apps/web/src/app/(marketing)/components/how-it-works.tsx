@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
+import ButtonLink from './button';
 import setYourGoalsImg from '../../public/set-your-goals.png';
 import aiBuildsYourPlanImg from '../../public/ai-builds-your-plan.png';
 import trackAndAdaptImg from '../../public/track-and-adapt.png';
@@ -69,13 +69,9 @@ export default function HowItWorks() {
           <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-inverse)' }}>
             Ready to hit your milestone?
           </h2>
-          <Link
-            href="/app"
-            className="inline-flex items-center rounded-md px-5 py-3 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none"
-            style={{ backgroundImage: 'var(--grad-cta)' }}
-          >
+          <ButtonLink href="/app" ariaLabel="Get started">
             Get Started
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </section>

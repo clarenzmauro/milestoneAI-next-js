@@ -33,7 +33,7 @@ const features: Feature[] = [
     imageAlt: 'Progress tracking visualization',
   },
   {
-    title: 'Time-Aware Suggestions',
+    title: 'Real-Time Updates',
     description: 'Adaptive plans that evolve with you.',
     imageSrc: realTimeUpdatesImg,
     imageAlt: 'Real-time updates and reminders',

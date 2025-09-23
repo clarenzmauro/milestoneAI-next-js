@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import ButtonLink from './button';
 
 export default function Hero() {
   return (
@@ -12,13 +12,9 @@ export default function Hero() {
           build actionable roadmaps, and stay on track with adaptive guidance.
         </p>
         <div className="mt-8">
-          <Link
-            href="/app"
-            className="inline-flex items-center rounded-md px-5 py-3 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none"
-            style={{ backgroundImage: 'var(--grad-cta)' }}
-          >
+          <ButtonLink href="/app" ariaLabel="Get started">
             Get Started
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </section>
