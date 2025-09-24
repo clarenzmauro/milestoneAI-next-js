@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not set' }), { status: 500 });
   }
 
-  const { goal, duration } = await req.json().catch(() => ({ goal: '', duration: null }));
+  const { goal, duration, currentDateTime } = await req.json().catch(() => ({ goal: '', duration: null, currentDateTime: null }));
   if (!goal || typeof goal !== 'string') {
     return new Response(JSON.stringify({ error: 'Goal is required in the request body.' }), { status: 400 });
   }
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const prompt = createValidationPrompt(goal, duration || undefined);
+    const prompt = createValidationPrompt(goal, duration || undefined, currentDateTime);
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -89,24 +89,67 @@ export async function POST(req: NextRequest) {
 
 /**
  * @description
- * Builds the validation prompt for goal assessment.
+ * Builds the validation prompt for goal assessment with strict timeframe enforcement.
  *
  * @receives data from:
- * - route.ts; POST: goal string from request
+ * - route.ts; POST: goal string, duration, and current date/time context
  *
  * @sends data to:
- * - Google Generative AI; generateContent: prompt string
+ * - Google Generative AI; generateContent: timeframe-specific validation prompt
  *
  * @sideEffects:
  * - None
  */
-function createValidationPrompt(goal: string, duration?: number): string {
-  const timeframeContext = duration ? `This goal should be achievable within ${duration} days.` : '';
+function createValidationPrompt(goal: string, duration?: number, currentDateTime?: any): string {
+  let timeframeContext = '';
+  let timeframeGuidance = '';
+
+  if (duration) {
+    // Provide specific guidance based on timeframe
+    if (duration === 7) {
+      timeframeContext = `This is a 7-day quick sprint. Goals must be achievable within ONE WEEK.`;
+      timeframeGuidance = `
+7-DAY SPRINT GUIDELINES:
+- Focus on immediate, actionable tasks
+- Small, measurable wins within 7 days
+- Examples: "Complete 3 blog posts", "Learn basic React components", "Run 5km daily for 7 days"
+- Reject: Long-term projects, major lifestyle changes, complex learning paths`;
+    } else if (duration === 30) {
+      timeframeContext = `This is a 30-day focused month. Goals must be achievable within ONE MONTH.`;
+      timeframeGuidance = `
+30-DAY MONTH GUIDELINES:
+- Medium-term projects with clear milestones
+- Build sustainable habits or complete focused projects
+- Examples: "Build a portfolio website", "Read 4 books", "Lose 5 pounds with diet + exercise"
+- Reject: Major career changes, complex products, multi-month transformations`;
+    } else if (duration === 90) {
+      timeframeContext = `This is a 90-day quarterly plan. Goals must be achievable within THREE MONTHS.`;
+      timeframeGuidance = `
+90-DAY QUARTERLY GUIDELINES:
+- Significant projects with multiple phases
+- Transformative goals requiring consistent effort
+- Examples: "Launch SaaS MVP", "Master a new technology stack", "Build a business from scratch"
+- Reject: Overly ambitious goals, career pivots requiring 6+ months`;
+    } else {
+      timeframeContext = `This is a ${duration}-day custom timeframe. Goals must be realistically achievable within exactly ${duration} days.`;
+      timeframeGuidance = `
+CUSTOM TIMEFRAME GUIDELINES:
+- Scale goal complexity proportionally to available days
+- Ensure milestones fit within the exact timeframe
+- For ${duration} days: ${duration < 14 ? 'Focus on quick wins and skill acquisition' : duration < 60 ? 'Medium projects with clear deliverables' : 'Major initiatives with multiple milestones'}`;
+    }
+  }
+
+  // Include current date/time context for more relevant suggestions
+  const dateTimeContext = currentDateTime ? `
+Current context: Today is ${currentDateTime.dayOfWeek}, ${currentDateTime.month} ${currentDateTime.date}, ${currentDateTime.year}.
+Current time: ${currentDateTime.time} (${currentDateTime.timestamp}).
+Consider seasonal factors, current month, and time of year when providing suggestions.` : '';
 
   return `You are an expert goal-setting coach. Analyze the following goal and provide a JSON response with validation and suggestions.
 
 Goal to analyze: "${goal}"
-${timeframeContext}
+${timeframeContext}${dateTimeContext}
 
 IMPORTANT: Respond with ONLY a valid JSON object in this exact format. Do NOT include any markdown formatting, code blocks, or additional text:
 
@@ -118,17 +161,26 @@ IMPORTANT: Respond with ONLY a valid JSON object in this exact format. Do NOT in
   "category": "string"
 }
 
-Guidelines for validation:
-- Valid goals are specific, measurable, achievable, relevant, and time-bound (SMART criteria)
-- Invalid examples: "be happy", "make money", "get fit", "learn stuff"
-- Valid examples: "lose 10 pounds in 3 months by exercising 3x/week", "launch a mobile app MVP in 6 months", "learn React by building 5 projects"
+STRICT TIMEFRAME REQUIREMENTS:
+${timeframeGuidance}
+
+Validation guidelines:
+- Valid goals MUST be realistically achievable within the specified timeframe
+- Goals must be specific, measurable, achievable, relevant, and time-bound (SMART criteria)
+- REJECT goals that are inappropriate for the timeframe (e.g., "learn 5 programming languages" in 7 days)
+- Consider current date/time context for seasonal relevance
+
+Examples by timeframe:
+7 DAYS: "Write and publish 2 blog posts", "Complete React tutorial and build 1 app", "Establish morning meditation habit"
+30 DAYS: "Launch personal website with 5 pages", "Read 3 technical books", "Complete online course certification"
+90 DAYS: "Build and deploy full-stack web app", "Master data science fundamentals", "Start profitable side business"
 
 Field explanations:
-- isValid: true if the goal meets SMART criteria
-- confidence: score from 0-100 about goal quality
-- feedback: brief explanation (max 100 chars)
-- suggestions: up to 3 improved goal suggestions, or empty array if goal is good
+- isValid: true if the goal meets SMART criteria AND fits the specified timeframe
+- confidence: score from 0-100 about goal quality and timeframe appropriateness
+- feedback: brief explanation (max 100 chars) including timeframe assessment
+- suggestions: up to 3 improved goal suggestions that FIT the exact timeframe, or empty array if goal is good
 - category: one of "career", "health", "learning", "personal", "business", "creative", "financial", "relationships", "other"
 
-Keep suggestions concise and actionable. If the goal is already good, set suggestions to empty array.`;
+REJECT inappropriate goals: If goal cannot realistically be achieved in timeframe, set isValid=false with low confidence and provide timeframe-appropriate alternatives.`;
 }

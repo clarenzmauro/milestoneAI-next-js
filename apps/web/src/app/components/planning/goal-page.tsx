@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { usePlan } from '../../contexts/PlanContext';
 import { validateGoal } from '../../services/aiService';
 import BackgroundGradients from '../BackgroundGradients';
@@ -13,11 +14,12 @@ interface ValidationResult {
 }
 
 export default function GoalPage() {
+  const router = useRouter();
   const [goal, setGoal] = useState('');
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const { setGoal: setContextGoal, selectedDuration } = usePlan();
+  const { setGoal: setContextGoal, selectedDuration, generateNewPlan } = usePlan();
 
   const handleGoalValidation = useCallback(async (goalText: string) => {
     if (!goalText.trim() || goalText.length < 5) {
@@ -74,8 +76,19 @@ export default function GoalPage() {
       console.warn('Goal has low confidence but allowing continuation');
     }
 
-    // Only now set the goal in context to trigger navigation to Layout
+    // Set the goal and start plan generation, then navigate immediately to show streaming
     setContextGoal(trimmedGoal);
+
+    try {
+      // Start plan generation with streaming - this will navigate immediately to show real-time updates
+      generateNewPlan(trimmedGoal);
+      // Navigate immediately to milestone page to show streaming progress
+      router.push('/app');
+    } catch (error) {
+      console.error('Plan generation failed:', error);
+      return; // Don't clear validation state if generation failed
+    }
+
     // Clear validation state when continuing
     setValidation(null);
     setShowSuggestions(false);
@@ -90,6 +103,7 @@ export default function GoalPage() {
   return (
     <main className="relative h-screen overflow-y-auto" style={{ backgroundColor: 'var(--bg-deep)' }}>
       <BackgroundGradients />
+
 
       {/* Navigation */}
       <header className="sticky top-0 z-50 border-b backdrop-blur-md" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'transparent' }}>
@@ -248,7 +262,7 @@ export default function GoalPage() {
             border: 'none',
           }}
         >
-          {!validation ? 'Analyze Goal' : validation.isValid ? 'Continue to Plan' : 'Improve Goal First'}
+        {!validation ? 'Analyze Goal' : validation.isValid ? 'Generate My Plan' : 'Improve Goal First'}
         </button>
       </section>
     </main>

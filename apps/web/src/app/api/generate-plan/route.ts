@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not set' }), { status: 500 });
   }
 
-  const { goal } = await req.json().catch(() => ({ goal: '' }));
+  const { goal, duration } = await req.json().catch(() => ({ goal: '', duration: undefined }));
   if (!goal || typeof goal !== 'string') {
     return new Response(JSON.stringify({ error: 'Goal is required in the request body.' }), { status: 400 });
   }
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const prompt = createPlanPrompt(goal);
+  const prompt = createPlanPrompt(goal, duration);
 
   const stream = new ReadableStream<Uint8Array>({
     /**
@@ -125,7 +125,9 @@ export async function POST(req: NextRequest) {
         const encoder = new TextEncoder();
         for await (const chunk of result.stream) {
           const text = chunk.text?.();
-          if (text) controller.enqueue(encoder.encode(text));
+          if (text) {
+            controller.enqueue(encoder.encode(text));
+          }
         }
         controller.close();
       } catch (err: any) {
@@ -157,17 +159,39 @@ export async function POST(req: NextRequest) {
  * @sideEffects:
  * - None
  */
-function createPlanPrompt(goal: string): string {
-  return `You are an expert project planner. Create a detailed, actionable 90-day plan to achieve the following goal:
+function createPlanPrompt(goal: string, duration?: number): string {
+  // Default to 90 days if no duration specified
+  const planDuration = duration || 90;
 
-"${goal}"
+  // Calculate structure based on duration
+  const daysPerWeek = 7;
+  const weeksPerMonth = 4;
 
-Structure the plan rigorously using the following Markdown format:
+  let structureDescription = '';
+  let totalMonths = 0;
+  let totalWeeks = 0;
 
+  if (planDuration === 7) {
+    // 7-day sprint: 1 week
+    structureDescription = `
 # Goal: [Restate the User's Goal Here]
 
-## Month 1: [Concise Milestone Title for Month 1]
-### Week 1: [Objective Title for Week 1 of Month 1]
+## Week 1: [Sprint Objective - What will be accomplished this week]
+- Day 1: [Specific, actionable task for Day 1]
+- Day 2: [Specific, actionable task for Day 2]
+- Day 3: [Specific, actionable task for Day 3]
+- Day 4: [Specific, actionable task for Day 4]
+- Day 5: [Specific, actionable task for Day 5]
+- Day 6: [Specific, actionable task for Day 6]
+- Day 7: [Specific, actionable task for Day 7]`;
+    totalWeeks = 1;
+  } else if (planDuration === 30) {
+    // 30-day month: 4 weeks, 1 month
+    structureDescription = `
+# Goal: [Restate the User's Goal Here]
+
+## Month 1: [Monthly Milestone - Major accomplishment for this month]
+### Week 1: [Weekly objective for Week 1]
 - Day 1: [Specific, actionable task for Day 1]
 - Day 2: [Specific, actionable task for Day 2]
 - Day 3: [Specific, actionable task for Day 3]
@@ -175,23 +199,97 @@ Structure the plan rigorously using the following Markdown format:
 - Day 5: [Specific, actionable task for Day 5]
 - Day 6: [Specific, actionable task for Day 6]
 - Day 7: [Specific, actionable task for Day 7]
-### Week 2: [Objective Title for Week 2 of Month 1]
+### Week 2: [Weekly objective for Week 2]
 - Day 1: [Task...]
 ... (Repeat for all 7 days)
-### Week 3: [Objective Title for Week 3 of Month 1]
+### Week 3: [Weekly objective for Week 3]
 ... (Repeat for all 7 days)
-### Week 4: [Objective Title for Week 4 of Month 1]
+### Week 4: [Weekly objective for Week 4]
+... (Repeat for all 7 days)`;
+    totalMonths = 1;
+    totalWeeks = 4;
+  } else if (planDuration === 90) {
+    // 90-day quarter: 12 weeks, 3 months (original structure)
+    structureDescription = `
+# Goal: [Restate the User's Goal Here]
+
+## Month 1: [Monthly milestone for Month 1]
+### Week 1: [Weekly objective for Week 1 of Month 1]
+- Day 1: [Specific, actionable task for Day 1]
+- Day 2: [Specific, actionable task for Day 2]
+- Day 3: [Specific, actionable task for Day 3]
+- Day 4: [Specific, actionable task for Day 4]
+- Day 5: [Specific, actionable task for Day 5]
+- Day 6: [Specific, actionable task for Day 6]
+- Day 7: [Specific, actionable task for Day 7]
+### Week 2: [Weekly objective for Week 2 of Month 1]
+- Day 1: [Task...]
+... (Repeat for all 7 days)
+### Week 3: [Weekly objective for Week 3 of Month 1]
+... (Repeat for all 7 days)
+### Week 4: [Weekly objective for Week 4 of Month 1]
 ... (Repeat for all 7 days)
 
-## Month 2: [Concise Milestone Title for Month 2]
-### Week 1: [Objective Title for Week 1 of Month 2]
+## Month 2: [Monthly milestone for Month 2]
+### Week 1: [Weekly objective for Week 1 of Month 2]
 ... (Repeat structure for 4 weeks and 7 days/week)
 
-## Month 3: [Concise Milestone Title for Month 3]
-### Week 1: [Objective Title for Week 1 of Month 3]
-... (Repeat structure for 4 weeks and 7 days/week)
+## Month 3: [Monthly milestone for Month 3]
+### Week 1: [Weekly objective for Week 1 of Month 3]
+... (Repeat structure for 4 weeks and 7 days/week)`;
+    totalMonths = 3;
+    totalWeeks = 12;
+  } else {
+    // Custom duration - calculate months and weeks dynamically
+    const totalWeeksNeeded = Math.ceil(planDuration / daysPerWeek);
+    totalMonths = Math.ceil(totalWeeksNeeded / weeksPerMonth);
+    totalWeeks = totalWeeksNeeded;
 
-Ensure every day within every week has a task assigned. Use the exact headings (# Goal:, ## Month <number>:, ### Week <number>:, - Day <number>:) as shown.`;
+    structureDescription = `
+# Goal: [Restate the User's Goal Here]`;
+
+    for (let month = 1; month <= totalMonths; month++) {
+      structureDescription += `
+
+## Month ${month}: [Monthly milestone for Month ${month}]`;
+      const weeksInMonth = month === totalMonths ? (totalWeeks - (month - 1) * weeksPerMonth) : weeksPerMonth;
+
+      for (let week = 1; week <= weeksInMonth; week++) {
+        structureDescription += `
+### Week ${(month - 1) * weeksPerMonth + week}: [Weekly objective for Week ${(month - 1) * weeksPerMonth + week}]
+- Day 1: [Specific, actionable task for Day 1]
+- Day 2: [Specific, actionable task for Day 2]
+- Day 3: [Specific, actionable task for Day 3]
+- Day 4: [Specific, actionable task for Day 4]
+- Day 5: [Specific, actionable task for Day 5]
+- Day 6: [Specific, actionable task for Day 6]
+- Day 7: [Specific, actionable task for Day 7]`;
+      }
+    }
+  }
+
+  const durationContext = duration ?
+    `This is a ${planDuration}-day plan. Create a realistic, achievable plan for exactly ${planDuration} days.` :
+    'Create a comprehensive 90-day plan.';
+
+  return `You are an expert project planner. Create a detailed, actionable plan to achieve the following goal:
+
+"${goal}"
+
+${durationContext} The plan should be specifically tailored for a ${planDuration}-day timeframe and include realistic, achievable milestones that build progressively toward the goal.
+
+Structure the plan rigorously using the following Markdown format:
+${structureDescription}
+
+IMPORTANT REQUIREMENTS:
+- Every day within the plan must have a specific, actionable task assigned
+- Tasks should be realistic and achievable within the ${planDuration}-day timeframe
+- Use the exact headings and structure shown above
+- Ensure the plan builds progressively from foundational tasks to advanced achievements
+- Make tasks specific and measurable with clear completion criteria
+- Consider the user's selected timeframe (${planDuration} days) when determining task complexity and pacing
+
+Use the exact headings (# Goal:, ## Month <number>:, ### Week <number>:, - Day <number>:) as shown.`;
 }
 
 

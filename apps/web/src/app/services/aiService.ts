@@ -49,16 +49,16 @@ async function _fetchAPI<T>(endpoint: string, body: object): Promise<T> {
 
 /**
  * @description
- * Validates a goal and provides suggestions for improvement.
+ * Validates a goal and provides suggestions for improvement with current date/time context.
  *
  * @receives data from:
- * - goal-page.tsx; handleGoalValidation: Goal string to validate
+ * - goal-page.tsx; handleGoalValidation: Goal string and optional duration to validate
  *
  * @sends data to:
- * - api/validate-goal/route.ts; POST: Goal validation request
+ * - api/validate-goal/route.ts; POST: Goal validation request with current date/time context for enhanced AI suggestions
  *
  * @sideEffects:
- * - Network request to validate goal
+ * - Network request to validate goal with contextual AI analysis
  */
 export async function validateGoal(goal: string, duration?: number): Promise<{
   isValid: boolean;
@@ -67,7 +67,22 @@ export async function validateGoal(goal: string, duration?: number): Promise<{
   suggestions: string[];
   category: string;
 }> {
-  return _fetchAPI('/validate-goal', { goal, duration });
+  // Include current date/time context for better AI suggestions
+  const currentDate = new Date();
+  const currentDateTime = {
+    date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
+    time: currentDate.toTimeString().split(' ')[0], // HH:MM:SS format
+    dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'long' }),
+    month: currentDate.toLocaleDateString('en-US', { month: 'long' }),
+    year: currentDate.getFullYear(),
+    timestamp: currentDate.toISOString()
+  };
+
+  return _fetchAPI('/validate-goal', {
+    goal,
+    duration,
+    currentDateTime
+  });
 }
 
 // Function to generate the initial 90-day plan via backend proxy with streaming
