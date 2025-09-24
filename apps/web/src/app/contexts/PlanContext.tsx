@@ -124,7 +124,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
         // Try to parse the streaming text incrementally for display
         try {
-          const parsedStreamingPlan = parsePlanString(accumulatedText, trimmedGoal, true);
+          const parsedStreamingPlan = parsePlanString(accumulatedText, trimmedGoal, selectedDuration || undefined, true);
           if (parsedStreamingPlan) {
             setStreamingPlan(parsedStreamingPlan);
           }
@@ -143,9 +143,27 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       setStreamingPlanText(null);
       setStreamingPlan(null);
       
-      const parsedPlan = parsePlanString(rawPlanString, trimmedGoal);
+      const parsedPlan = parsePlanString(rawPlanString, trimmedGoal, selectedDuration || undefined);
 
       if (parsedPlan) {
+        // Validate task count matches expected duration
+        let totalTasks = 0;
+        parsedPlan.monthlyMilestones.forEach(month => {
+          month.weeklyObjectives.forEach(week => {
+            totalTasks += week.dailyTasks.length;
+          });
+        });
+
+        if (selectedDuration && totalTasks !== selectedDuration) {
+          console.warn(`Final validation: Task count mismatch: got ${totalTasks}, expected ${selectedDuration}`);
+          if (totalTasks < selectedDuration * 0.7) {
+            setError(`Plan generation incomplete. Expected ${selectedDuration} tasks but got only ${totalTasks} unique tasks. Please try again.`);
+            setPlanState(null);
+            return;
+          }
+          console.log(`Proceeding with ${totalTasks} unique tasks out of ${selectedDuration} expected`);
+        }
+
         // --- Check for initial achievements on plan generation ---
         const { updatedPlan: planWithInitialAchievements } = checkAndUnlockAchievements(parsedPlan);
         setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked

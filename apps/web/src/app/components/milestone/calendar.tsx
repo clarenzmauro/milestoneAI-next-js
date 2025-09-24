@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../../types/planTypes';
 import { usePlan } from '../../contexts/PlanContext';
-import { FaCheck, FaClock, FaCalendarAlt } from 'react-icons/fa';
+import TaskModal from '../modals/task-modal';
+import { chatWithAI } from '../../services/aiService';
+import { FaCheck, FaCalendarAlt } from 'react-icons/fa';
 
 interface CalendarProps {
   plan?: FullPlan | null;
@@ -27,6 +29,8 @@ interface CalendarProps {
 const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan }) => {
   const { toggleTaskCompletion } = usePlan();
   const [currentDate] = React.useState(new Date());
+  const [selectedTask, setSelectedTask] = useState<DailyTask | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   // Use streaming plan if available, otherwise use regular plan
   const displayPlan = streamingPlan || plan;
@@ -68,40 +72,38 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     }> = [];
 
     const { startDate, totalDays } = planDateRange;
-    let taskIndex = 0;
+
+    // Flatten all tasks into a sequential array first
+    const allTasks: DailyTask[] = [];
+    const taskToMonthMap: Map<DailyTask, MonthlyMilestone> = new Map();
+    const taskToWeekMap: Map<DailyTask, WeeklyObjective> = new Map();
+
+    if (displayPlan.monthlyMilestones) {
+      displayPlan.monthlyMilestones.forEach(month => {
+        if (month.weeklyObjectives) {
+          month.weeklyObjectives.forEach(week => {
+            if (week.dailyTasks) {
+              week.dailyTasks.forEach(task => {
+                allTasks.push(task);
+                taskToMonthMap.set(task, month);
+                taskToWeekMap.set(task, week);
+              });
+            }
+          });
+        }
+      });
+    }
 
     // Generate dates for the plan duration
     for (let i = 0; i < totalDays; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
 
-      // Find tasks for this date by counting through the plan structure
-      let foundTasks: DailyTask[] = [];
-      let currentMonth: MonthlyMilestone | null = null;
-      let currentWeek: WeeklyObjective | null = null;
-
-      // Iterate through plan structure to find tasks for this day
-      if (displayPlan.monthlyMilestones) {
-        for (const month of displayPlan.monthlyMilestones) {
-          if (month.weeklyObjectives) {
-            for (const week of month.weeklyObjectives) {
-              if (week.dailyTasks) {
-                for (const task of week.dailyTasks) {
-                  if (taskIndex === i) {
-                    foundTasks = [task];
-                    currentMonth = month;
-                    currentWeek = week;
-                    break;
-                  }
-                  taskIndex++;
-                }
-                if (foundTasks.length > 0) break;
-              }
-            }
-            if (foundTasks.length > 0) break;
-          }
-        }
-      }
+      // Get the task for this day (if available)
+      const task = allTasks[i];
+      const foundTasks = task ? [task] : [];
+      const currentMonth = task ? taskToMonthMap.get(task) || null : null;
+      const currentWeek = task ? taskToWeekMap.get(task) || null : null;
 
       data.push({
         date,
@@ -219,8 +221,49 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     return months;
   }, [calendarData, displayPlan?.monthlyMilestones]);
 
-  const handleTaskToggle = async (monthIndex: number, weekIndex: number, taskDay: number) => {
-    await toggleTaskCompletion(monthIndex, weekIndex, taskDay);
+  const handleTaskClick = (task: DailyTask) => {
+    setSelectedTask(task);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleTaskToggle = async (task: DailyTask) => {
+    // Find the task in the plan structure to get the correct indices
+    if (!displayPlan?.monthlyMilestones) return;
+
+    for (let monthIdx = 0; monthIdx < displayPlan.monthlyMilestones.length; monthIdx++) {
+      const month = displayPlan.monthlyMilestones[monthIdx];
+      if (month.weeklyObjectives) {
+        for (let weekIdx = 0; weekIdx < month.weeklyObjectives.length; weekIdx++) {
+          const week = month.weeklyObjectives[weekIdx];
+          if (week.dailyTasks) {
+            const taskIdx = week.dailyTasks.findIndex(t => t === task);
+            if (taskIdx !== -1) {
+              await toggleTaskCompletion(monthIdx, weekIdx, task.day);
+              return;
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const handleSendMessage = async (message: string, task: DailyTask, plan: FullPlan): Promise<string> => {
+    try {
+      // Create a contextual message for the AI
+      const contextualMessage = `Regarding this specific task: "${task.description}"
+
+User question: ${message}
+
+Please provide helpful guidance about this task in the context of the overall goal: "${plan.goal}". Focus on how this task contributes to the plan and offer practical advice.`;
+
+      // Use empty history for task-specific chat
+      const history: Array<{ role: 'user' | 'model'; parts: string }> = [];
+
+      return await chatWithAI(contextualMessage, history, plan);
+    } catch (error) {
+      console.error('Failed to send message to AI:', error);
+      return 'Sorry, I encountered an error while processing your question. Please try again.';
+    }
   };
 
   // Show streaming text if available (during plan generation)
@@ -305,8 +348,21 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
               </div>
             </div>
           </div>
-        </div>
-      </article>
+      </div>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        plan={displayPlan || null}
+        onToggleComplete={handleTaskToggle}
+        onSendMessage={handleSendMessage}
+      />
+    </article>
     );
   }
 
@@ -414,31 +470,32 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
 
                         {/* Tasks */}
                         <div className="space-y-1">
-                          {day.tasks.map((task) => (
+                          {day.tasks.map((task, index) => (
                             <div
                               key={task.day}
-                              className="flex items-start space-x-1"
+                              className="cursor-pointer"
+                              onClick={() => handleTaskClick(task)}
                             >
-                              <button
-                                onClick={() => handleTaskToggle(monthIndex, weekIndex, task.day)}
-                                className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
+                              <div className="flex items-start space-x-1 group">
+                                <div
+                                  className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
+                                    task.completed
+                                      ? 'bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]'
+                                      : 'border-[var(--border-subtle)] group-hover:border-[var(--accent-cyan,#22D3EE)]'
+                                  }`}
+                                >
+                                  {task.completed && (
+                                    <FaCheck className="text-white text-xs" />
+                                  )}
+                                </div>
+                                <span className={`text-xs leading-tight group-hover:text-[var(--accent-cyan)] transition-colors ${
                                   task.completed
-                                    ? 'bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]'
-                                    : 'border-[var(--border-subtle)] hover:border-[var(--accent-cyan,#22D3EE)]'
-                                }`}
-                                aria-label={`Mark task "${task.description}" as ${task.completed ? 'incomplete' : 'complete'}`}
-                              >
-                                {task.completed && (
-                                  <FaCheck className="text-white text-xs" />
-                                )}
-                              </button>
-                              <span className={`text-xs leading-tight ${
-                                task.completed
-                                  ? 'line-through text-[var(--text-secondary)]'
-                                  : 'text-[var(--text-inverse)]'
-                              }`}>
-                                {task.description}
-                              </span>
+                                    ? 'line-through text-[var(--text-secondary)]'
+                                    : 'text-[var(--text-inverse)]'
+                                }`}>
+                                  {task.description}
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -458,6 +515,19 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
           </div>
         ))}
       </div>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        plan={displayPlan}
+        onToggleComplete={handleTaskToggle}
+        onSendMessage={handleSendMessage}
+      />
     </article>
   );
 };

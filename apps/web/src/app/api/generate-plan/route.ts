@@ -172,71 +172,162 @@ function createPlanPrompt(goal: string, duration?: number): string {
   let totalWeeks = 0;
 
   if (planDuration === 7) {
-    // 7-day sprint: 1 week
-    structureDescription = `
-# Goal: [Restate the User's Goal Here]
+    // 7-day sprint: 1 week, exactly 7 tasks
+    structureDescription = `# Goal: ${goal}
 
-## Week 1: [Sprint Objective - What will be accomplished this week]
-- Day 1: [Specific, actionable task for Day 1]
-- Day 2: [Specific, actionable task for Day 2]
-- Day 3: [Specific, actionable task for Day 3]
-- Day 4: [Specific, actionable task for Day 4]
-- Day 5: [Specific, actionable task for Day 5]
-- Day 6: [Specific, actionable task for Day 6]
-- Day 7: [Specific, actionable task for Day 7]`;
+## Week 1: [One-sentence objective for this 7-day sprint]
+- Day 1: [Actionable task for day 1]
+- Day 2: [Actionable task for day 2]
+- Day 3: [Actionable task for day 3]
+- Day 4: [Actionable task for day 4]
+- Day 5: [Actionable task for day 5]
+- Day 6: [Actionable task for day 6]
+- Day 7: [Actionable task for day 7]`;
     totalWeeks = 1;
   } else if (planDuration === 30) {
-    // 30-day month: 4 weeks, 1 month
-    structureDescription = `
-# Goal: [Restate the User's Goal Here]
+    // 30-day month: 4 weeks, exactly 30 tasks
+    structureDescription = `# Goal: ${goal}
 
-## Month 1: [Monthly Milestone - Major accomplishment for this month]
-### Week 1: [Weekly objective for Week 1]
-- Day 1: [Specific, actionable task for Day 1]
-- Day 2: [Specific, actionable task for Day 2]
-- Day 3: [Specific, actionable task for Day 3]
-- Day 4: [Specific, actionable task for Day 4]
-- Day 5: [Specific, actionable task for Day 5]
-- Day 6: [Specific, actionable task for Day 6]
-- Day 7: [Specific, actionable task for Day 7]
-### Week 2: [Weekly objective for Week 2]
-- Day 1: [Task...]
-... (Repeat for all 7 days)
-### Week 3: [Weekly objective for Week 3]
-... (Repeat for all 7 days)
-### Week 4: [Weekly objective for Week 4]
-... (Repeat for all 7 days)`;
+## Month 1: [One-sentence milestone for this month]
+### Week 1: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 2: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 3: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 4: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]`;
     totalMonths = 1;
     totalWeeks = 4;
   } else if (planDuration === 90) {
-    // 90-day quarter: 12 weeks, 3 months (original structure)
-    structureDescription = `
-# Goal: [Restate the User's Goal Here]
+    // 90-day quarter: 12 weeks, 3 months, exactly 90 tasks
+    structureDescription = `# Goal: ${goal}
 
-## Month 1: [Monthly milestone for Month 1]
-### Week 1: [Weekly objective for Week 1 of Month 1]
-- Day 1: [Specific, actionable task for Day 1]
-- Day 2: [Specific, actionable task for Day 2]
-- Day 3: [Specific, actionable task for Day 3]
-- Day 4: [Specific, actionable task for Day 4]
-- Day 5: [Specific, actionable task for Day 5]
-- Day 6: [Specific, actionable task for Day 6]
-- Day 7: [Specific, actionable task for Day 7]
-### Week 2: [Weekly objective for Week 2 of Month 1]
-- Day 1: [Task...]
-... (Repeat for all 7 days)
-### Week 3: [Weekly objective for Week 3 of Month 1]
-... (Repeat for all 7 days)
-### Week 4: [Weekly objective for Week 4 of Month 1]
-... (Repeat for all 7 days)
+## Month 1: [Monthly milestone]
+### Week 1: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 2: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 3: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 4: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
 
-## Month 2: [Monthly milestone for Month 2]
-### Week 1: [Weekly objective for Week 1 of Month 2]
-... (Repeat structure for 4 weeks and 7 days/week)
+## Month 2: [Monthly milestone]
+### Week 5: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 6: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 7: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 8: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
 
-## Month 3: [Monthly milestone for Month 3]
-### Week 1: [Weekly objective for Week 1 of Month 3]
-... (Repeat structure for 4 weeks and 7 days/week)`;
+## Month 3: [Monthly milestone]
+### Week 9: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 10: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 11: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]
+### Week 12: [Weekly objective]
+- Day 1: [Task]
+- Day 2: [Task]
+- Day 3: [Task]
+- Day 4: [Task]
+- Day 5: [Task]
+- Day 6: [Task]
+- Day 7: [Task]`;
     totalMonths = 3;
     totalWeeks = 12;
   } else {
@@ -245,8 +336,7 @@ function createPlanPrompt(goal: string, duration?: number): string {
     totalMonths = Math.ceil(totalWeeksNeeded / weeksPerMonth);
     totalWeeks = totalWeeksNeeded;
 
-    structureDescription = `
-# Goal: [Restate the User's Goal Here]`;
+    structureDescription = `# Goal: ${goal}`;
 
     for (let month = 1; month <= totalMonths; month++) {
       structureDescription += `
@@ -255,41 +345,59 @@ function createPlanPrompt(goal: string, duration?: number): string {
       const weeksInMonth = month === totalMonths ? (totalWeeks - (month - 1) * weeksPerMonth) : weeksPerMonth;
 
       for (let week = 1; week <= weeksInMonth; week++) {
+        const globalWeekNum = (month - 1) * weeksPerMonth + week;
         structureDescription += `
-### Week ${(month - 1) * weeksPerMonth + week}: [Weekly objective for Week ${(month - 1) * weeksPerMonth + week}]
-- Day 1: [Specific, actionable task for Day 1]
-- Day 2: [Specific, actionable task for Day 2]
-- Day 3: [Specific, actionable task for Day 3]
-- Day 4: [Specific, actionable task for Day 4]
-- Day 5: [Specific, actionable task for Day 5]
-- Day 6: [Specific, actionable task for Day 6]
-- Day 7: [Specific, actionable task for Day 7]`;
+### Week ${globalWeekNum}: [Weekly objective for Week ${globalWeekNum}]
+- Day 1: [Specific actionable task for Day 1]
+- Day 2: [Specific actionable task for Day 2]
+- Day 3: [Specific actionable task for Day 3]
+- Day 4: [Specific actionable task for Day 4]
+- Day 5: [Specific actionable task for Day 5]
+- Day 6: [Specific actionable task for Day 6]
+- Day 7: [Specific actionable task for Day 7]`;
       }
     }
   }
 
   const durationContext = duration ?
-    `This is a ${planDuration}-day plan. Create a realistic, achievable plan for exactly ${planDuration} days.` :
-    'Create a comprehensive 90-day plan.';
+    `This is a ${planDuration}-day plan. Create exactly ${planDuration} specific, actionable tasks - one for each day.` :
+    'Create a comprehensive 90-day plan with exactly 90 specific, actionable tasks.';
 
-  return `You are an expert project planner. Create a detailed, actionable plan to achieve the following goal:
+  return `You are an expert project planner. Break down this goal into EXACTLY ${planDuration} unique, sequential steps:
 
-"${goal}"
+GOAL: "${goal}"
 
-${durationContext} The plan should be specifically tailored for a ${planDuration}-day timeframe and include realistic, achievable milestones that build progressively toward the goal.
+${durationContext}
 
-Structure the plan rigorously using the following Markdown format:
+PLAN STRUCTURE REQUIREMENTS:
+- Create exactly ${planDuration} different tasks (one per day)
+- Each task must be completely unique
+- Tasks must form a logical progression toward the goal
+- No task can be similar to any other task
+
+Before creating tasks, identify the key phases this goal requires:
+1. Research/Planning phase
+2. Foundation/Gathering phase
+3. Implementation/Execution phase
+4. Optimization/Refinement phase
+5. Advanced/Specialized phase (if needed)
+
+Then distribute the ${planDuration} tasks across these phases, ensuring variety within each phase.
+
+FORMATTING: Use EXACTLY this structure with NO variations:
+
 ${structureDescription}
 
-IMPORTANT REQUIREMENTS:
-- Every day within the plan must have a specific, actionable task assigned
-- Tasks should be realistic and achievable within the ${planDuration}-day timeframe
-- Use the exact headings and structure shown above
-- Ensure the plan builds progressively from foundational tasks to advanced achievements
-- Make tasks specific and measurable with clear completion criteria
-- Consider the user's selected timeframe (${planDuration} days) when determining task complexity and pacing
+CRITICAL RULES:
+- NEVER repeat the same task description
+- Each task must be fundamentally different from all others
+- Progress from basic concepts to advanced implementation
+- Make each task specific and actionable
+- Avoid generic tasks like "work on X" or "continue Y"
 
-Use the exact headings (# Goal:, ## Month <number>:, ### Week <number>:, - Day <number>:) as shown.`;
+If you run out of unique ideas, think of different angles, tools, or approaches to achieve the same goal.
+
+OUTPUT: Only the formatted structure, no extra text.`;
 }
 
 

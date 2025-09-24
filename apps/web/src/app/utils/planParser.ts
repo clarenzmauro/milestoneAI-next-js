@@ -1,6 +1,18 @@
 import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../types/planTypes';
 
 /**
+ * Strips markdown formatting from text
+ */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.*?)\*/g, '$1')     // Remove italic
+    .replace(/`(.*?)`/g, '$1')       // Remove code
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links, keep text
+    .trim();
+}
+
+/**
  * Parses a raw markdown-like string into a structured FullPlan object.
  * Can handle partial/incomplete plan strings during streaming.
  *
@@ -24,10 +36,11 @@ import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../
  *
  * @param rawPlanString - Raw string from AI (can be partial/incomplete)
  * @param userGoal - User-defined goal
+ * @param expectedDuration - Expected number of days/tasks
  * @param isStreaming - Whether this is a streaming parse (allows incomplete results)
  * @returns Parsed FullPlan or partial result, or null if parsing fails completely
  */
-export const parsePlanString = (rawPlanString: string, userGoal: string, isStreaming = false): FullPlan | null => {
+export const parsePlanString = (rawPlanString: string, userGoal: string, expectedDuration?: number, isStreaming = false): FullPlan | null => {
   if (!rawPlanString) return null;
 
   const lines = rawPlanString.split('\n').filter(line => line.trim() !== '');
@@ -42,6 +55,8 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, isStrea
   let weekCounter = 0;
   let dayCounter = 0;
   let hasWeeklyStructure = false;
+  let totalTasksFound = 0;
+  const seenTasks = new Set<string>(); // Track unique task descriptions
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -94,12 +109,24 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, isStrea
     if (taskMatch && currentObjective) {
       dayCounter++;
       const dayNumber = taskMatch[2] ? parseInt(taskMatch[2], 10) : dayCounter;
+      const rawDescription = taskMatch[3].trim();
+      const cleanDescription = stripMarkdown(rawDescription);
+
+      // Check for duplicate tasks and skip them
+      if (seenTasks.has(cleanDescription)) {
+        console.warn(`Skipping duplicate task: ${cleanDescription}`);
+        continue;
+      }
+
       const task: DailyTask = {
         day: dayNumber,
-        description: taskMatch[3].trim(),
+        description: cleanDescription,
         completed: false,
       };
       currentObjective.dailyTasks.push(task);
+      seenTasks.add(cleanDescription);
+      totalTasksFound++;
+
       continue;
     }
 
@@ -108,6 +135,21 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, isStrea
     //   const lastTask = currentObjective.dailyTasks[currentObjective.dailyTasks.length - 1];
     //   lastTask.description += '\n' + trimmedLine;
     // }
+  }
+
+  // Validate task count matches expected duration
+  if (expectedDuration && !isStreaming) {
+    if (totalTasksFound !== expectedDuration) {
+      console.warn(`Task count mismatch: found ${totalTasksFound}, expected ${expectedDuration}`);
+      // For non-streaming, allow some flexibility since we filter duplicates
+      if (totalTasksFound < expectedDuration * 0.7) {
+        // Too many missing tasks (less than 70% of expected), return null for retry
+        console.error(`Too few unique tasks: ${totalTasksFound}/${expectedDuration}`);
+        return null;
+      }
+      // Allow plans with reasonable number of unique tasks
+      console.log(`Proceeding with ${totalTasksFound} unique tasks (expected ${expectedDuration})`);
+    }
   }
 
   // For streaming, allow partial results
