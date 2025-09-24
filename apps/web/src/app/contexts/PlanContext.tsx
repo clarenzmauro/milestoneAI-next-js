@@ -17,10 +17,12 @@ export interface IPlanContext {
   isLoading: boolean;
   error: string | null;
   selectedDuration: number | null;
+  goal: string | null;
   generateNewPlan: (goal: string, onChunk?: (chunk: string) => void) => Promise<void>;
   setPlanFromString: (planString: string, originalGoal: string | undefined) => Promise<boolean>;
   setPlan: (loadedPlan: FullPlan) => void;
   setSelectedDuration: (duration: number) => void;
+  setGoal: (goal: string) => void;
   saveCurrentPlan: () => Promise<void>;
   toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
   resetPlanState: () => void;
@@ -40,8 +42,26 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDuration, setSelectedDurationState] = useState<number | null>(null);
+  const [goal, setGoalState] = useState<string | null>(null);
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
+
+  /**
+   * @description
+   * Set the user's goal for plan generation.
+   *
+   * @receives data from:
+   * - GoalPage.tsx; handleContinue: User enters goal and continues
+   *
+   * @sends data to:
+   * - N/A
+   *
+   * @sideEffects:
+   * - Mutates context state: goal
+   */
+  const setGoal = (newGoal: string) => {
+    setGoalState(newGoal);
+  };
 
   // Function to reset all relevant plan states
   /**
@@ -55,13 +75,14 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
    * - N/A
    *
    * @sideEffects:
-   * - Mutates context state: plan, streamingPlanText, isLoading, error
+   * - Mutates context state: plan, streamingPlanText, isLoading, error, goal
    */
   const resetPlanState = () => {
     setPlanState(null);
     setStreamingPlanText(null);
     setIsLoading(false);
     setError(null);
+    setGoalState(null);
   };
 
   /**
@@ -343,10 +364,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     isLoading,
     error,
     selectedDuration,
+    goal,
     generateNewPlan,
     setPlanFromString,
     setPlan,
     setSelectedDuration: setSelectedDurationState,
+    setGoal,
     saveCurrentPlan,
     toggleTaskCompletion,
     resetPlanState,

@@ -47,6 +47,29 @@ async function _fetchAPI<T>(endpoint: string, body: object): Promise<T> {
   return data;
 }
 
+/**
+ * @description
+ * Validates a goal and provides suggestions for improvement.
+ *
+ * @receives data from:
+ * - goal-page.tsx; handleGoalValidation: Goal string to validate
+ *
+ * @sends data to:
+ * - api/validate-goal/route.ts; POST: Goal validation request
+ *
+ * @sideEffects:
+ * - Network request to validate goal
+ */
+export async function validateGoal(goal: string, duration?: number): Promise<{
+  isValid: boolean;
+  confidence: number;
+  feedback: string;
+  suggestions: string[];
+  category: string;
+}> {
+  return _fetchAPI('/validate-goal', { goal, duration });
+}
+
 // Function to generate the initial 90-day plan via backend proxy with streaming
 /**
  * @description
