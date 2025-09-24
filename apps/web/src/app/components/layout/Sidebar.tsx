@@ -8,12 +8,14 @@ import SavedPlansModal from '../modals/SavedPlansModal';
 import type { FullPlan } from '../../types/planTypes';
 import type { ChatMessage } from '../../types/chatTypes';
 
-// Define initial message
-const initialMessage: ChatMessage = {
+// Define initial message (will be created dynamically based on selected duration)
+const createInitialMessage = (duration: number | null): ChatMessage => ({
   id: 'initial',
   role: 'ai',
-  text: "Let's build your roadmap to success! What big goal are you aiming for in 90 days?"
-};
+  text: duration
+    ? `Let's build your roadmap to success! What big goal are you aiming for in ${duration} days?`
+    : "Let's build your roadmap to success! What big goal are you aiming for?"
+});
 
 /**
  * @description
@@ -32,7 +34,7 @@ const initialMessage: ChatMessage = {
  */
 const Sidebar: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,7 @@ const Sidebar: React.FC = () => {
 
   const {
     plan,
+    selectedDuration,
     isLoading: isPlanLoading,
     error: planError,
     generateNewPlan,
@@ -60,14 +63,23 @@ const Sidebar: React.FC = () => {
     }
   }, [messages]);
 
-  // Reset messages when plan is cleared
+  // Initialize messages when selectedDuration changes
   useEffect(() => {
-    if (plan === null) {
-      setMessages([initialMessage]);
+    if (selectedDuration !== null) {
+      setMessages([createInitialMessage(selectedDuration)]);
       setInputValue('');
       setError(null);
     }
-  }, [plan]);
+  }, [selectedDuration]);
+
+  // Reset messages when plan is cleared
+  useEffect(() => {
+    if (plan === null && selectedDuration !== null) {
+      setMessages([createInitialMessage(selectedDuration)]);
+      setInputValue('');
+      setError(null);
+    }
+  }, [plan, selectedDuration]);
 
   const createNewUserMessage = useCallback((text: string): ChatMessage => ({
     id: Date.now(),

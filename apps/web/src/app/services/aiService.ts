@@ -62,7 +62,8 @@ async function _fetchAPI<T>(endpoint: string, body: object): Promise<T> {
  * - Network streaming; invokes onChunk callback for UI updates
  */
 export const generatePlan = async (
-  goal: string, 
+  goal: string,
+  duration?: number,
   onChunk?: (chunk: string) => void
 ): Promise<string> => {
   
@@ -72,7 +73,7 @@ export const generatePlan = async (
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ goal }),
+    body: JSON.stringify({ goal, duration }),
   });
 
   if (!response.ok) {

@@ -16,9 +16,11 @@ export interface IPlanContext {
   streamingPlanText: string | null;
   isLoading: boolean;
   error: string | null;
+  selectedDuration: number | null;
   generateNewPlan: (goal: string, onChunk?: (chunk: string) => void) => Promise<void>;
   setPlanFromString: (planString: string, originalGoal: string | undefined) => Promise<boolean>;
   setPlan: (loadedPlan: FullPlan) => void;
+  setSelectedDuration: (duration: number) => void;
   saveCurrentPlan: () => Promise<void>;
   toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
   resetPlanState: () => void;
@@ -37,6 +39,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [streamingPlanText, setStreamingPlanText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDuration, setSelectedDurationState] = useState<number | null>(null);
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
 
@@ -91,7 +94,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     try {
       let accumulatedText = '';
       
-      const rawPlanString = await apiGeneratePlan(trimmedGoal, (chunk: string) => {
+      const rawPlanString = await apiGeneratePlan(trimmedGoal, selectedDuration || undefined, (chunk: string) => {
         accumulatedText += chunk;
         setStreamingPlanText(accumulatedText);
         
@@ -339,9 +342,11 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     streamingPlanText,
     isLoading,
     error,
+    selectedDuration,
     generateNewPlan,
     setPlanFromString,
     setPlan,
+    setSelectedDuration: setSelectedDurationState,
     saveCurrentPlan,
     toggleTaskCompletion,
     resetPlanState,
