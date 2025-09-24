@@ -2,6 +2,7 @@ import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../
 
 /**
  * Parses a raw markdown-like string into a structured FullPlan object.
+ * Can handle partial/incomplete plan strings during streaming.
  *
  * WARNING: This parser is fragile and depends heavily on consistent formatting
  * from the AI (specific Markdown headers like `#`, `##`, `###`, and list markers `-` or `*`).
@@ -21,11 +22,12 @@ import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../
  * ...
  * ## Month 2: ...
  *
- * @param rawPlanString - Raw string from AI
+ * @param rawPlanString - Raw string from AI (can be partial/incomplete)
  * @param userGoal - User-defined goal
- * @returns Parsed FullPlan or null if parsing fails
+ * @param isStreaming - Whether this is a streaming parse (allows incomplete results)
+ * @returns Parsed FullPlan or partial result, or null if parsing fails completely
  */
-export const parsePlanString = (rawPlanString: string, userGoal: string): FullPlan | null => {
+export const parsePlanString = (rawPlanString: string, userGoal: string, isStreaming = false): FullPlan | null => {
   if (!rawPlanString) return null;
 
   const lines = rawPlanString.split('\n').filter(line => line.trim() !== '');
@@ -39,6 +41,7 @@ export const parsePlanString = (rawPlanString: string, userGoal: string): FullPl
   let monthCounter = 0;
   let weekCounter = 0;
   let dayCounter = 0;
+  let hasWeeklyStructure = false;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -58,10 +61,24 @@ export const parsePlanString = (rawPlanString: string, userGoal: string): FullPl
       continue;
     }
 
-    // Match: ### Week 1: Objective Title
+    // Match: ### Week 1: Objective Title (can be standalone or under months)
     const weekMatch = trimmedLine.match(/^#+\s*Week\s*(\d+):?\s*(.*)/i);
-    if (weekMatch && currentMilestone) {
+    if (weekMatch) {
+      hasWeeklyStructure = true;
       weekCounter = parseInt(weekMatch[1], 10);
+
+      // If we don't have a current milestone, create a synthetic one for weeks without months
+      if (!currentMilestone) {
+        const syntheticMonthNumber = Math.ceil(weekCounter / 4); // Group weeks into months
+        currentMilestone = {
+          month: syntheticMonthNumber,
+          milestone: `Month ${syntheticMonthNumber} Objectives`,
+          weeklyObjectives: [],
+        };
+        plan.monthlyMilestones.push(currentMilestone);
+        monthCounter = syntheticMonthNumber;
+      }
+
       currentObjective = {
         week: weekCounter,
         objective: weekMatch[2].trim() || `Week ${weekCounter} Objective`,
@@ -93,8 +110,17 @@ export const parsePlanString = (rawPlanString: string, userGoal: string): FullPl
     // }
   }
 
-  if (plan.monthlyMilestones.length === 0) {
-    console.warn('Parser could not find any monthly milestones.');
+  // For streaming, allow partial results
+  if (isStreaming) {
+    // Return partial plan if we have any content
+    if (plan.monthlyMilestones.length > 0 || hasWeeklyStructure) {
+      return plan;
+    }
+  }
+
+  // For complete parsing, require at least some structure
+  if (plan.monthlyMilestones.length === 0 && !hasWeeklyStructure) {
+    console.warn('Parser could not find any monthly milestones or weekly structure.');
     return null;
   }
 

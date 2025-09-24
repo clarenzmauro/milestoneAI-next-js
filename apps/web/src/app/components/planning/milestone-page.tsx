@@ -26,7 +26,7 @@ import QuickNotes from '../../components/milestone/quick-notes';
  * - Manages plan state through context
  */
 export default function MilestonePage() {
-  const { plan, streamingPlanText, resetPlanState, selectedDuration } = usePlan();
+  const { plan, streamingPlanText, streamingPlan, resetPlanState, selectedDuration } = usePlan();
   const router = useRouter();
 
   // Redirect to goal page if no plan exists and no streaming is happening
@@ -61,7 +61,15 @@ export default function MilestonePage() {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleCreateNewPlan}
-              className="px-4 py-2 bg-[var(--accent-color,#4A90E2)] text-white rounded-lg hover:bg-[var(--accent-color-dark,#357ABD)] transition-colors font-medium"
+              className="px-4 py-2 text-white rounded-lg font-medium shadow-md transition-colors motion-reduce:transition-none"
+              style={{
+                backgroundColor: 'var(--black)',
+                backgroundImage: 'var(--grad-cta), linear-gradient(var(--black), var(--black))',
+                backgroundRepeat: 'no-repeat, no-repeat',
+                backgroundSize: 'calc(100% - 12px) 1px, 100% 100%',
+                backgroundPosition: 'center 100%, 0 0',
+                border: 'none',
+              }}
             >
               Create New Plan
             </button>
@@ -95,7 +103,7 @@ export default function MilestonePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar Section - Takes up 2 columns on large screens */}
             <div className="lg:col-span-2">
-              <Calendar plan={plan as any} streamingText={streamingPlanText ?? undefined} />
+              <Calendar plan={plan as any} streamingText={streamingPlanText ?? undefined} streamingPlan={streamingPlan} />
             </div>
 
             {/* Sidebar with AI Insights and Quick Notes */}

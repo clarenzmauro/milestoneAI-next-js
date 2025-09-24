@@ -6,6 +6,7 @@ import { FaCheck, FaClock, FaCalendarAlt } from 'react-icons/fa';
 interface CalendarProps {
   plan?: FullPlan | null;
   streamingText?: string;
+  streamingPlan?: FullPlan | null; // Parsed plan during streaming
 }
 
 /**
@@ -23,30 +24,228 @@ interface CalendarProps {
  * @sideEffects:
  * - Updates task completion state through context
  */
-const Calendar: React.FC<CalendarProps> = ({ plan, streamingText }) => {
+const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan }) => {
   const { toggleTaskCompletion } = usePlan();
   const [currentDate] = React.useState(new Date());
+
+  // Use streaming plan if available, otherwise use regular plan
+  const displayPlan = streamingPlan || plan;
+
+  // Calculate plan duration and date range
+  const planDateRange = React.useMemo(() => {
+    if (!displayPlan) return null;
+
+    const startDate = new Date(); // Start from today
+    let totalDays = 0;
+
+    // Calculate total days in the plan
+    displayPlan.monthlyMilestones?.forEach(month => {
+      month.weeklyObjectives?.forEach(week => {
+        totalDays += week.dailyTasks?.length || 0;
+      });
+    });
+
+    // If we can't determine duration, default to 90 days
+    const planDays = totalDays > 0 ? totalDays : 90;
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + planDays - 1);
+
+    return { startDate, endDate, totalDays: planDays };
+  }, [displayPlan]);
+
+  // Generate calendar data structure with actual dates
+  const calendarData = React.useMemo(() => {
+    if (!displayPlan || !planDateRange) return [];
+
+    const data: Array<{
+      date: Date;
+      month: MonthlyMilestone | null;
+      week: WeeklyObjective | null;
+      tasks: DailyTask[];
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      hasTasks: boolean;
+    }> = [];
+
+    const { startDate, totalDays } = planDateRange;
+    let taskIndex = 0;
+
+    // Generate dates for the plan duration
+    for (let i = 0; i < totalDays; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+
+      // Find tasks for this date by counting through the plan structure
+      let foundTasks: DailyTask[] = [];
+      let currentMonth: MonthlyMilestone | null = null;
+      let currentWeek: WeeklyObjective | null = null;
+
+      // Iterate through plan structure to find tasks for this day
+      if (displayPlan.monthlyMilestones) {
+        for (const month of displayPlan.monthlyMilestones) {
+          if (month.weeklyObjectives) {
+            for (const week of month.weeklyObjectives) {
+              if (week.dailyTasks) {
+                for (const task of week.dailyTasks) {
+                  if (taskIndex === i) {
+                    foundTasks = [task];
+                    currentMonth = month;
+                    currentWeek = week;
+                    break;
+                  }
+                  taskIndex++;
+                }
+                if (foundTasks.length > 0) break;
+              }
+            }
+            if (foundTasks.length > 0) break;
+          }
+        }
+      }
+
+      data.push({
+        date,
+        month: currentMonth,
+        week: currentWeek,
+        tasks: foundTasks,
+        isCurrentMonth: date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear(),
+        isToday: date.toDateString() === currentDate.toDateString(),
+        hasTasks: foundTasks.length > 0
+      });
+    }
+
+    return data;
+  }, [displayPlan, planDateRange, currentDate]);
+
+  // Group calendar data by actual calendar months
+  const monthsData = React.useMemo(() => {
+    const months: Array<{
+      monthName: string;
+      year: number;
+      monthData: MonthlyMilestone | null;
+      weeks: Array<{
+        weekStart: Date;
+        days: Array<{
+          date: Date;
+          month: MonthlyMilestone | null;
+          week: WeeklyObjective | null;
+          tasks: DailyTask[];
+          isCurrentMonth: boolean;
+          isToday: boolean;
+          hasTasks: boolean;
+          dayOfWeek: number; // 0-6, Sunday-Saturday
+        }>;
+      }>;
+    }> = [];
+
+    if (calendarData.length === 0) return months;
+
+    // Group days by month
+    const daysByMonth: { [key: string]: typeof calendarData } = {};
+    calendarData.forEach(day => {
+      const monthKey = `${day.date.getFullYear()}-${day.date.getMonth()}`;
+      if (!daysByMonth[monthKey]) {
+        daysByMonth[monthKey] = [];
+      }
+      daysByMonth[monthKey].push(day);
+    });
+
+    // Convert to months array
+    Object.keys(daysByMonth).sort().forEach(monthKey => {
+      const days = daysByMonth[monthKey];
+      const firstDay = days[0];
+      const monthData = displayPlan?.monthlyMilestones?.find(m =>
+        m.month === firstDay.date.getMonth() + 1
+      ) || null;
+
+      // Group days by weeks (starting Sunday)
+      const weeks: Array<{
+        weekStart: Date;
+        days: Array<{
+          date: Date;
+          month: MonthlyMilestone | null;
+          week: WeeklyObjective | null;
+          tasks: DailyTask[];
+          isCurrentMonth: boolean;
+          isToday: boolean;
+          hasTasks: boolean;
+          dayOfWeek: number;
+        }>;
+      }> = [];
+
+      const daysInMonth = days;
+      let currentWeek: typeof weeks[0]['days'] = [];
+      let weekStart = new Date(firstDay.date);
+
+      // Find the Sunday of the first week
+      const dayOfWeek = firstDay.date.getDay(); // 0 = Sunday, 6 = Saturday
+      weekStart.setDate(firstDay.date.getDate() - dayOfWeek);
+
+      daysInMonth.forEach(day => {
+        const dayOfWeek = day.date.getDay();
+
+        // If this is Sunday and we have days in current week, start new week
+        if (dayOfWeek === 0 && currentWeek.length > 0) {
+          weeks.push({
+            weekStart: new Date(weekStart),
+            days: [...currentWeek]
+          });
+          currentWeek = [];
+          weekStart = new Date(day.date);
+        }
+
+        currentWeek.push({
+          ...day,
+          dayOfWeek
+        });
+      });
+
+      // Add the last week if it has days
+      if (currentWeek.length > 0) {
+        weeks.push({
+          weekStart,
+          days: currentWeek
+        });
+      }
+
+      months.push({
+        monthName: firstDay.date.toLocaleDateString('en-US', { month: 'long' }),
+        year: firstDay.date.getFullYear(),
+        monthData,
+        weeks
+      });
+    });
+
+    return months;
+  }, [calendarData, displayPlan?.monthlyMilestones]);
+
+  const handleTaskToggle = async (monthIndex: number, weekIndex: number, taskDay: number) => {
+    await toggleTaskCompletion(monthIndex, weekIndex, taskDay);
+  };
 
   // Show streaming text if available (during plan generation)
   if (streamingText) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-[var(--border-color,#E5E9ED)] overflow-hidden">
+      <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
+        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
+        borderColor: 'var(--border-subtle)',
+      }}>
         <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <FaCalendarAlt className="text-[var(--accent-color,#4A90E2)]" />
-              <h2 className="text-xl font-semibold text-[var(--text-primary,#1A1A1A)]">
+              <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)]" />
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
                 Live Plan Generation
               </h2>
             </div>
             <div className="flex items-center space-x-2">
               <div className="animate-pulse">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-[var(--accent-cyan)] rounded-full"></div>
               </div>
-              <span className="text-xs text-cyan-400 font-medium">Streaming</span>
+              <span className="text-xs text-[var(--accent-cyan)] font-medium">Streaming</span>
             </div>
           </div>
-          <p className="text-sm text-[var(--text-secondary,#6c757d)] mt-1">
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             Gemini AI is creating your personalized milestone plan in real-time
           </p>
         </div>
@@ -56,190 +255,103 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText }) => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400/30"></div>
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-transparent border-t-cyan-400 absolute top-0"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--accent-cyan)]/30"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-transparent border-t-[var(--accent-cyan)] absolute top-0"></div>
               </div>
               <div>
-                <h3 className="font-medium text-[var(--text-primary,#1A1A1A)]">AI Plan Generation</h3>
-                <p className="text-xs text-[var(--text-secondary,#6c757d)]">
+                <h3 className="font-medium text-[var(--text-inverse)]">AI Plan Generation</h3>
+                <p className="text-xs text-[var(--text-muted)]">
                   Processing with Gemini 2.5 Flash
                 </p>
               </div>
             </div>
-            <div className="text-xs text-[var(--text-secondary,#6c757d)]">
+            <div className="text-xs text-[var(--text-muted)]">
               {streamingText.length} characters generated
             </div>
           </div>
 
           {/* Streaming Content */}
           <div className="relative">
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg border border-cyan-200 p-6 min-h-[300px]">
+            <div className="bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)] p-6 min-h-[300px]">
               <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-teal)] rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">G</span>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-sm font-medium text-[var(--text-primary,#1A1A1A)]">Gemini AI</span>
-                    <span className="text-xs text-[var(--text-secondary,#6c757d)]">Generating milestone plan...</span>
+                    <span className="text-sm font-medium text-[var(--text-inverse)]">Gemini AI</span>
+                    <span className="text-xs text-[var(--text-muted)]">Generating milestone plan...</span>
                   </div>
                   <div className="prose prose-sm max-w-none">
-                    <pre className="text-sm leading-6 whitespace-pre-wrap font-mono text-[var(--text-primary,#1A1A1A)] bg-transparent border-0 p-0 m-0">
+                    <pre className="text-sm leading-6 whitespace-pre-wrap font-mono text-[var(--text-inverse)] bg-transparent border-0 p-0 m-0">
                       {streamingText}
                     </pre>
                     {/* Typing indicator */}
-                    <span className="inline-block w-2 h-5 bg-cyan-400 animate-pulse ml-1 align-baseline"></span>
+                    <span className="inline-block w-2 h-5 bg-[var(--accent-cyan)] animate-pulse ml-1 align-baseline"></span>
                   </div>
                 </div>
               </div>
 
               {/* Progress indicator at bottom */}
-              <div className="mt-6 pt-4 border-t border-cyan-200">
-                <div className="flex items-center justify-between text-xs text-[var(--text-secondary,#6c757d)]">
+              <div className="mt-6 pt-4 border-t border-[var(--border-subtle)]">
+                <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
                   <span>Building your milestone roadmap...</span>
                   <div className="flex space-x-1">
-                    <div className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce"></div>
-                    <div className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"></div>
+                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </article>
     );
   }
 
   // Show error if no plan provided
-  if (!plan) {
+  if (!displayPlan) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-[var(--border-color,#E5E9ED)] overflow-hidden">
-        <div className="p-6 text-center">
-          <FaCalendarAlt className="text-[var(--accent-color,#4A90E2)] text-4xl mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-[var(--text-primary,#1A1A1A)] mb-2">
+      <article className="group relative overflow-hidden rounded-lg border p-6 text-center transition-shadow motion-reduce:transition-none" style={{
+        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
+        borderColor: 'var(--border-subtle)',
+      }}>
+          <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)] text-4xl mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-inverse)' }}>
             No Plan Available
-          </h2>
-          <p className="text-sm text-[var(--text-secondary,#6c757d)]">
+          </h3>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             Start by creating your first milestone plan.
           </p>
-        </div>
-      </div>
+        </article>
     );
   }
 
-  // Calculate the start date (beginning of current month)
-  const startDate = React.useMemo(() => {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    return date;
-  }, [currentDate]);
-
-  // Generate calendar data structure
-  const calendarData = React.useMemo(() => {
-    const data: Array<{
-      date: Date;
-      month: MonthlyMilestone | null;
-      week: WeeklyObjective | null;
-      tasks: DailyTask[];
-      isCurrentMonth: boolean;
-    }> = [];
-
-    // Generate dates for the next 90 days (3 months)
-    for (let i = 0; i < 90; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-
-      const monthIndex = Math.floor(i / 30); // 30 days per month approx
-      const weekIndex = Math.floor((i % 30) / 7); // 7 days per week
-      const dayIndex = (i % 30) % 7; // Day within week (0-6)
-
-      const month = plan.monthlyMilestones?.[monthIndex] || null;
-      const week = month?.weeklyObjectives?.[weekIndex] || null;
-      const tasks = week?.dailyTasks?.filter(task => task.day === dayIndex + 1) || [];
-
-      data.push({
-        date,
-        month,
-        week,
-        tasks,
-        isCurrentMonth: date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear()
-      });
-    }
-
-    return data;
-  }, [plan, startDate, currentDate]);
-
-  // Group calendar data by months
-  const monthsData = React.useMemo(() => {
-    const months: Array<{
-      monthName: string;
-      monthData: MonthlyMilestone | null;
-      weeks: Array<{
-        weekData: WeeklyObjective | null;
-        days: typeof calendarData;
-      }>;
-    }> = [];
-
-    for (let monthIndex = 0; monthIndex < 3; monthIndex++) {
-      const monthStart = monthIndex * 30;
-      const monthEnd = Math.min((monthIndex + 1) * 30, calendarData.length);
-      const monthDays = calendarData.slice(monthStart, monthEnd);
-
-      const monthData = plan.monthlyMilestones?.[monthIndex] || null;
-
-      // Group by weeks
-      const weeks = [];
-      for (let weekIndex = 0; weekIndex < 4; weekIndex++) {
-        const weekStart = weekIndex * 7;
-        const weekEnd = Math.min((weekIndex + 1) * 7, monthDays.length);
-        const weekDays = monthDays.slice(weekStart, weekEnd);
-
-        const weekData = monthData?.weeklyObjectives?.[weekIndex] || null;
-
-        weeks.push({
-          weekData,
-          days: weekDays
-        });
-      }
-
-      const monthName = new Date(startDate.getFullYear(), startDate.getMonth() + monthIndex, 1)
-        .toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-
-      months.push({
-        monthName,
-        monthData,
-        weeks
-      });
-    }
-
-    return months;
-  }, [calendarData, plan.monthlyMilestones, startDate]);
-
-  const handleTaskToggle = async (monthIndex: number, weekIndex: number, taskDay: number) => {
-    await toggleTaskCompletion(monthIndex, weekIndex, taskDay);
-  };
-
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-[var(--border-color,#E5E9ED)] overflow-hidden">
+    <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
+      background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
+      borderColor: 'var(--border-subtle)',
+    }}>
       <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
         <div className="flex items-center space-x-2">
-          <FaCalendarAlt className="text-[var(--accent-color,#4A90E2)]" />
-          <h2 className="text-xl font-semibold text-[var(--text-primary,#1A1A1A)]">
+          <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)]" />
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
             Plan Calendar
           </h2>
         </div>
-        <p className="text-sm text-[var(--text-secondary,#6c757d)] mt-1">
+        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
           Track your milestones, objectives, and daily tasks
         </p>
       </div>
 
       <div className="p-6 space-y-8">
         {monthsData.map((month, monthIndex) => (
-          <div key={monthIndex} className="space-y-4">
+          <div key={`${month.monthName}-${month.year}`} className="space-y-4">
             {/* Month Header */}
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[var(--text-primary,#1A1A1A)]">
-                {month.monthName}
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+                {month.monthName} {month.year}
               </h3>
               {month.monthData && (
                 <div className="text-sm text-[var(--text-secondary,#6c757d)] max-w-md">
@@ -248,46 +360,56 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText }) => {
               )}
             </div>
 
-            {/* Weeks */}
-            <div className="space-y-6">
-              {month.weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="space-y-2">
-                  {/* Week Header */}
-                  {week.weekData && (
-                    <div className="flex items-center space-x-2 text-sm font-medium text-[var(--text-primary,#1A1A1A)]">
-                      <FaClock className="text-[var(--accent-color-week,#50B83C)]" />
-                      <span>Week {week.weekData.week}</span>
-                      <span className="text-[var(--text-secondary,#6c757d)] font-normal">
-                        • {week.weekData.objective}
-                      </span>
-                    </div>
-                  )}
+            {/* Calendar Grid */}
+            <div className="bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 bg-[var(--neutral-950)] border-b border-[var(--border-subtle)]">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="p-3 text-center text-sm font-medium text-[var(--text-muted)]">
+                    {day}
+                  </div>
+                ))}
+              </div>
 
-                  {/* Days Grid */}
-                  <div className="grid grid-cols-7 gap-2">
-                    {week.days.map((day, dayIndex) => (
+              {/* Weeks */}
+              {month.weeks.map((week, weekIndex) => {
+                // Create a full 7-day week with empty cells
+                const fullWeek = Array.from({ length: 7 }, (_, i) => {
+                  const dayData = week.days.find(d => d.dayOfWeek === i);
+                  return dayData || {
+                    date: new Date(week.weekStart.getTime() + i * 24 * 60 * 60 * 1000),
+                    month: null,
+                    week: null,
+                    tasks: [],
+                    isCurrentMonth: false,
+                    isToday: false,
+                    hasTasks: false,
+                    dayOfWeek: i
+                  };
+                });
+
+                return (
+                  <div key={weekIndex} className="grid grid-cols-7 border-b border-[var(--border-subtle)] last:border-b-0">
+                    {fullWeek.map((day, dayIndex) => (
                       <div
                         key={dayIndex}
-                        className={`min-h-[120px] p-3 rounded-lg border ${
+                        className={`min-h-[100px] p-2 border-r border-[var(--border-subtle)] last:border-r-0 ${
                           day.isCurrentMonth
-                            ? 'bg-white border-[var(--border-color,#E5E9ED)]'
-                            : 'bg-[var(--background-tertiary,#f8f9fa)] border-[var(--border-color,#E5E9ED)]'
-                        }`}
+                            ? day.isToday
+                              ? 'bg-[var(--surface-card)]'
+                              : 'bg-[var(--bg-deep)]'
+                            : 'bg-[var(--neutral-950)]'
+                        } ${day.hasTasks ? 'ring-2 ring-[var(--accent-cyan,#22D3EE)] ring-opacity-30' : ''}`}
                       >
-                        {/* Day Header */}
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-sm font-medium ${
-                            day.isCurrentMonth
-                              ? 'text-[var(--text-primary,#1A1A1A)]'
-                              : 'text-[var(--text-disabled,#adb5bd)]'
-                          }`}>
-                            {day.date.getDate()}
-                          </span>
-                          {day.tasks.length > 0 && (
-                            <span className="text-xs bg-[var(--accent-color,#4A90E2)] text-white px-2 py-1 rounded">
-                              {day.tasks.length} task{day.tasks.length !== 1 ? 's' : ''}
-                            </span>
-                          )}
+                        {/* Day Number */}
+                        <div className={`text-xs font-medium mb-1 ${
+                          day.isCurrentMonth
+                            ? day.isToday
+                              ? 'text-[var(--accent-cyan,#22D3EE)]'
+                              : 'text-[var(--text-inverse)]'
+                            : 'text-[var(--text-secondary)]'
+                        }`}>
+                          {day.date.getDate()}
                         </div>
 
                         {/* Tasks */}
@@ -295,14 +417,14 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText }) => {
                           {day.tasks.map((task) => (
                             <div
                               key={task.day}
-                              className="flex items-start space-x-2"
+                              className="flex items-start space-x-1"
                             >
                               <button
                                 onClick={() => handleTaskToggle(monthIndex, weekIndex, task.day)}
-                                className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
                                   task.completed
-                                    ? 'bg-[var(--accent-color,#4A90E2)] border-[var(--accent-color,#4A90E2)]'
-                                    : 'border-[var(--border-color,#E5E9ED)] hover:border-[var(--accent-color,#4A90E2)]'
+                                    ? 'bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]'
+                                    : 'border-[var(--border-subtle)] hover:border-[var(--accent-cyan,#22D3EE)]'
                                 }`}
                                 aria-label={`Mark task "${task.description}" as ${task.completed ? 'incomplete' : 'complete'}`}
                               >
@@ -312,24 +434,31 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText }) => {
                               </button>
                               <span className={`text-xs leading-tight ${
                                 task.completed
-                                  ? 'line-through text-[var(--text-disabled,#adb5bd)]'
-                                  : 'text-[var(--text-primary,#1A1A1A)]'
+                                  ? 'line-through text-[var(--text-secondary)]'
+                                  : 'text-[var(--text-inverse)]'
                               }`}>
                                 {task.description}
                               </span>
                             </div>
                           ))}
                         </div>
+
+                        {/* Task count indicator for days with tasks */}
+                        {day.hasTasks && day.tasks.length > 1 && (
+                          <div className="mt-1 text-xs text-[var(--accent-cyan,#22D3EE)] font-medium">
+                            +{day.tasks.length - 1} more
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </article>
   );
 };
 

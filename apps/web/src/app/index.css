@@ -4,9 +4,9 @@
 :root {
   /* Color Palette */
   --primary-color: #4a90e2; /* Primary blue */
-  --accent-color: #50b83c; /* Accent green (used for progress bar, weeks) */
-  --accent-color-light: #8fdd7f; /* Lighter green for gradient */
-  --accent-color-dark: #409d2e; /* Darker green for hover */
+  --accent-color: #4a90e2; /* Primary blue (brand color) */
+  --accent-color-light: #5cadff; /* Lighter blue for gradient */
+  --accent-color-dark: #357abd; /* Darker blue for hover */
   --secondary-accent-color: #f5a623; /* Secondary accent orange (used for days) */
 
   /* Danger/Error Colors */

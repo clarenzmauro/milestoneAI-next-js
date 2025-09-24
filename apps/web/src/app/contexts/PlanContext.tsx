@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 export interface IPlanContext {
   plan: FullPlan | null;
   streamingPlanText: string | null;
+  streamingPlan: FullPlan | null;
   isLoading: boolean;
   error: string | null;
   selectedDuration: number | null;
@@ -39,6 +40,7 @@ interface PlanProviderProps {
 export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [plan, setPlanState] = useState<FullPlan | null>(null);
   const [streamingPlanText, setStreamingPlanText] = useState<string | null>(null);
+  const [streamingPlan, setStreamingPlan] = useState<FullPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDuration, setSelectedDurationState] = useState<number | null>(null);
@@ -80,6 +82,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const resetPlanState = () => {
     setPlanState(null);
     setStreamingPlanText(null);
+    setStreamingPlan(null);
     setIsLoading(false);
     setError(null);
     setGoalState(null);
@@ -118,15 +121,27 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       const rawPlanString = await apiGeneratePlan(trimmedGoal, selectedDuration || undefined, (chunk: string) => {
         accumulatedText += chunk;
         setStreamingPlanText(accumulatedText);
-        
+
+        // Try to parse the streaming text incrementally for display
+        try {
+          const parsedStreamingPlan = parsePlanString(accumulatedText, trimmedGoal, true);
+          if (parsedStreamingPlan) {
+            setStreamingPlan(parsedStreamingPlan);
+          }
+        } catch (parseError) {
+          // Ignore parsing errors during streaming - they'll be resolved when complete
+          console.debug('Streaming parse failed:', parseError);
+        }
+
         // Also call the provided onChunk callback if it exists
         if (onChunk) {
           onChunk(chunk);
         }
       });
       
-      // Clear streaming text once plan is fully generated
+      // Clear streaming text and plan once plan is fully generated
       setStreamingPlanText(null);
+      setStreamingPlan(null);
       
       const parsedPlan = parsePlanString(rawPlanString, trimmedGoal);
 
@@ -361,6 +376,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const contextValue: IPlanContext = {
     plan,
     streamingPlanText,
+    streamingPlan,
     isLoading,
     error,
     selectedDuration,

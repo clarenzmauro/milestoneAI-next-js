@@ -24,28 +24,31 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan }) => {
   // Show placeholder during plan generation
   if (!plan) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-[var(--border-color,#E5E9ED)] overflow-hidden">
+      <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
+        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
+        borderColor: 'var(--border-subtle)',
+      }}>
         <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
           <div className="flex items-center space-x-2">
-            <FaLightbulb className="text-[var(--accent-color,#4A90E2)]" />
-            <h2 className="text-xl font-semibold text-[var(--text-primary,#1A1A1A)]">
+            <FaLightbulb className="text-[var(--accent-cyan,#22D3EE)]" />
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
               AI Insights
             </h2>
           </div>
-          <p className="text-sm text-[var(--text-secondary,#6c757d)] mt-1">
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             Insights will appear once your plan is generated
           </p>
         </div>
 
         <div className="p-6">
           <div className="text-center py-8">
-            <FaLightbulb className="text-4xl text-[var(--accent-color,#4A90E2)] opacity-50 mx-auto mb-4" />
-            <p className="text-sm text-[var(--text-secondary,#6c757d)]">
+            <FaLightbulb className="text-4xl text-[var(--accent-cyan,#22D3EE)] opacity-50 mx-auto mb-4" />
+            <p className="text-sm text-[var(--text-muted)]">
               AI insights will analyze your progress and provide personalized recommendations.
             </p>
           </div>
         </div>
-      </div>
+      </article>
     );
   }
   // Calculate progress metrics
@@ -225,25 +228,28 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan }) => {
   const getInsightStyles = (type: string) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200 text-green-800';
+        return 'bg-[var(--bg-deep)] border-[var(--border-subtle)] text-[var(--text-inverse)]';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+        return 'bg-[var(--bg-deep)] border-[var(--border-subtle)] text-[var(--text-inverse)]';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-[var(--bg-deep)] border-[var(--border-subtle)] text-[var(--text-inverse)]';
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-[var(--border-color,#E5E9ED)] overflow-hidden">
+    <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
+      background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
+      borderColor: 'var(--border-subtle)',
+    }}>
       <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
         <div className="flex items-center space-x-2">
-          <FaLightbulb className="text-[var(--accent-color,#4A90E2)]" />
-          <h2 className="text-xl font-semibold text-[var(--text-primary,#1A1A1A)]">
+          <FaLightbulb className="text-[var(--accent-cyan,#22D3EE)]" />
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
             AI Insights
           </h2>
         </div>
-        <p className="text-sm text-[var(--text-secondary,#6c757d)] mt-1">
+        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
           Personalized insights to help you stay on track
         </p>
       </div>
@@ -251,39 +257,39 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan }) => {
       <div className="p-6">
         {/* Progress Overview */}
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-[var(--text-primary,#1A1A1A)] mb-4">
+          <h3 className="text-lg font-medium text-[var(--text-inverse)] mb-4">
             Progress Overview
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-[var(--background-tertiary,#f8f9fa)] rounded-lg">
-              <div className="text-2xl font-bold text-[var(--accent-color,#4A90E2)]">
+            <div className="text-center p-4 bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)]">
+              <div className="text-2xl font-bold text-[var(--accent-cyan)]">
                 {progressMetrics.overallProgress}%
               </div>
-              <div className="text-sm text-[var(--text-secondary,#6c757d)]">
+              <div className="text-sm text-[var(--text-muted)]">
                 Overall Progress
               </div>
             </div>
-            <div className="text-center p-4 bg-[var(--background-tertiary,#f8f9fa)] rounded-lg">
-              <div className="text-2xl font-bold text-[var(--accent-color-week,#50B83C)]">
+            <div className="text-center p-4 bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)]">
+              <div className="text-2xl font-bold text-[var(--accent-cyan)]">
                 {progressMetrics.completedTasks}
               </div>
-              <div className="text-sm text-[var(--text-secondary,#6c757d)]">
+              <div className="text-sm text-[var(--text-muted)]">
                 Tasks Completed
               </div>
             </div>
-            <div className="text-center p-4 bg-[var(--background-tertiary,#f8f9fa)] rounded-lg">
-              <div className="text-2xl font-bold text-[var(--text-primary,#1A1A1A)]">
+            <div className="text-center p-4 bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)]">
+              <div className="text-2xl font-bold text-[var(--text-inverse)]">
                 {progressMetrics.streaks.current}
               </div>
-              <div className="text-sm text-[var(--text-secondary,#6c757d)]">
+              <div className="text-sm text-[var(--text-muted)]">
                 Current Streak
               </div>
             </div>
-            <div className="text-center p-4 bg-[var(--background-tertiary,#f8f9fa)] rounded-lg">
-              <div className="text-2xl font-bold text-[var(--text-primary,#1A1A1A)]">
+            <div className="text-center p-4 bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)]">
+              <div className="text-2xl font-bold text-[var(--text-inverse)]">
                 {progressMetrics.streaks.longest}
               </div>
-              <div className="text-sm text-[var(--text-secondary,#6c757d)]">
+              <div className="text-sm text-[var(--text-muted)]">
                 Best Streak
               </div>
             </div>
@@ -292,7 +298,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan }) => {
 
         {/* Insights */}
         <div>
-          <h3 className="text-lg font-medium text-[var(--text-primary,#1A1A1A)] mb-4">
+          <h3 className="text-lg font-medium text-[var(--text-inverse)] mb-4">
             Insights & Recommendations
           </h3>
           <div className="space-y-4">
@@ -304,10 +310,10 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan }) => {
                   className={`p-4 rounded-lg border ${getInsightStyles(insight.type)}`}
                 >
                   <div className="flex items-start space-x-3">
-                    <IconComponent className="text-lg mt-0.5 flex-shrink-0" />
+                    <IconComponent className="text-lg mt-0.5 flex-shrink-0 text-[var(--accent-cyan,#22D3EE)]" />
                     <div>
-                      <h4 className="font-medium mb-1">{insight.title}</h4>
-                      <p className="text-sm opacity-90">{insight.message}</p>
+                      <h4 className="font-medium mb-1 text-[var(--text-inverse)]">{insight.title}</h4>
+                      <p className="text-sm text-[var(--text-muted)]">{insight.message}</p>
                     </div>
                   </div>
                 </div>
@@ -316,7 +322,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan }) => {
           </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 
