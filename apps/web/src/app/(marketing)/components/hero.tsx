@@ -12,7 +12,7 @@ export default function Hero() {
           build actionable roadmaps, and stay on track with adaptive guidance.
         </p>
         <div className="mt-8">
-          <ButtonLink href="/app" ariaLabel="Get started">
+          <ButtonLink href="/auth" ariaLabel="Get started">
             Get Started
           </ButtonLink>
         </div>

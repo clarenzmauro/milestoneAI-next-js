@@ -69,7 +69,7 @@ export default function HowItWorks() {
           <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-inverse)' }}>
             Ready to hit your milestone?
           </h2>
-          <ButtonLink href="/app" ariaLabel="Get started">
+          <ButtonLink href="/auth" ariaLabel="Get started">
             Get Started
           </ButtonLink>
         </div>

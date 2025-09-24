@@ -8,14 +8,6 @@ interface ButtonLinkProps {
 }
 
 export default function ButtonLink({ href, children, ariaLabel }: ButtonLinkProps) {
-  if (typeof href !== 'string' || href.trim().length === 0) {
-    throw new Error('ButtonLink requires a non-empty string href.');
-  }
-
-  if (children === undefined || children === null) {
-    throw new Error('ButtonLink requires visible children content.');
-  }
-
   return (
     <Link
       href={href}
