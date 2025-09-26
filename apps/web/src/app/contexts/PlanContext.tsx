@@ -8,6 +8,7 @@ import type { AchievementDefinition } from '../config/achievements';
 import { useUser } from '@clerk/nextjs';
 import { useMutation } from 'convex/react';
 import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
+import type { Id } from '@milestoneAI-next-js/backend/convex/_generated/dataModel';
 import { toast } from 'sonner';
 
 // 1. Define the shape of the context data
@@ -19,11 +20,13 @@ export interface IPlanContext {
   error: string | null;
   selectedDuration: number | null;
   goal: string | null;
+  currentPlanId: Id<'plans'> | null;
   generateNewPlan: (goal: string, onChunk?: (chunk: string) => void) => Promise<void>;
   setPlanFromString: (planString: string, originalGoal: string | undefined) => Promise<boolean>;
   setPlan: (loadedPlan: FullPlan) => void;
   setSelectedDuration: (duration: number) => void;
   setGoal: (goal: string) => void;
+  setCurrentPlanId: (id: Id<'plans'> | null) => void;
   saveCurrentPlan: () => Promise<void>;
   toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
   resetPlanState: () => void;
@@ -45,6 +48,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedDuration, setSelectedDurationState] = useState<number | null>(null);
   const [goal, setGoalState] = useState<string | null>(null);
+  const [currentPlanId, setCurrentPlanIdState] = useState<Id<'plans'> | null>(null);
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
 
@@ -86,6 +90,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setIsLoading(false);
     setError(null);
     setGoalState(null);
+    setCurrentPlanIdState(null);
   };
 
   /**
@@ -172,7 +177,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         // --- Auto-save if user is logged in ---
         if (user) {
           try {
-            await savePlanMutation({ userId: user.id, plan: planWithInitialAchievements });
+            const insertedId = await savePlanMutation({ userId: user.id, plan: planWithInitialAchievements });
+            if (insertedId) setCurrentPlanIdState(insertedId as Id<'plans'>);
           } catch (saveError) {
             console.error('[PlanContext] Auto-save failed:', saveError);
           }
@@ -234,7 +240,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         // --- Auto-save if user is logged in ---
         if (user) {
           try {
-            await savePlanMutation({ userId: user.id, plan: planWithInitialAchievements });
+            const insertedId = await savePlanMutation({ userId: user.id, plan: planWithInitialAchievements });
+            if (!currentPlanId && insertedId) setCurrentPlanIdState(insertedId as Id<'plans'>);
           } catch (saveError) {
             console.error('[PlanContext] Updated plan auto-save failed:', saveError);
             // Log error, but don't interrupt user flow
@@ -302,7 +309,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     }
 
     try {
-      await savePlanMutation({ userId: user.id, plan });
+      const insertedId = await savePlanMutation({ userId: user.id, plan });
+      if (!currentPlanId && insertedId) setCurrentPlanIdState(insertedId as Id<'plans'>);
     } catch (saveError) {
       console.error('[PlanContext] Failed to save current plan state:', saveError);
       setError('Failed to save the current plan progress.'); // Set an error for the user
@@ -399,11 +407,13 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     error,
     selectedDuration,
     goal,
+    currentPlanId,
     generateNewPlan,
     setPlanFromString,
     setPlan,
     setSelectedDuration: setSelectedDurationState,
     setGoal,
+    setCurrentPlanId: setCurrentPlanIdState,
     saveCurrentPlan,
     toggleTaskCompletion,
     resetPlanState,

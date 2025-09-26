@@ -13,7 +13,10 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as chat from "../chat.js";
 import type * as healthCheck from "../healthCheck.js";
+import type * as insights from "../insights.js";
+import type * as notes from "../notes.js";
 import type * as plans from "../plans.js";
 import type * as todos from "../todos.js";
 
@@ -26,7 +29,10 @@ import type * as todos from "../todos.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  chat: typeof chat;
   healthCheck: typeof healthCheck;
+  insights: typeof insights;
+  notes: typeof notes;
   plans: typeof plans;
   todos: typeof todos;
 }>;

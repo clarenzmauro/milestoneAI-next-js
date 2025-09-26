@@ -16,6 +16,7 @@ import { v } from "convex/values";
  * - Creates, updates, and deletes documents in the Convex DB.
  */
 export const savePlan = mutation({
+  // Deprecated client arg `userId` retained for compatibility; identity is enforced server-side
   args: {
     userId: v.string(),
     plan: v.object({
@@ -51,22 +52,31 @@ export const savePlan = mutation({
       unlockedAchievements: v.optional(v.record(v.string(), v.boolean())),
     }),
   },
-  handler: async (ctx, { userId, plan }) => {
+  handler: async (ctx, { plan }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    const now = Date.now();
     const id = await ctx.db.insert("plans", {
-      userId,
+      userId: identity.subject,
       ...plan,
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      archived: false,
+      status: "draft",
     });
     return id;
   },
 });
 
 export const listPlans = query({
+  // Deprecated client arg `userId` retained; server uses authenticated user
   args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const docs = await ctx.db
       .query("plans")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .order("desc")
       .collect();
     return docs;
@@ -74,24 +84,64 @@ export const listPlans = query({
 });
 
 export const deletePlan = mutation({
+  // Deprecated client arg `userId` retained; server checks ownership
   args: { id: v.id("plans"), userId: v.string() },
-  handler: async (ctx, { id, userId }) => {
+  handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const doc = await ctx.db.get(id);
-    if (!doc || doc.userId !== userId) return { success: false };
+    if (!doc || doc.userId !== identity.subject) return { success: false };
     await ctx.db.delete(id);
     return { success: true };
   },
 });
 
 export const deletePlansByGoal = mutation({
+  // Deprecated client arg `userId` retained; server uses authenticated user
   args: { userId: v.string(), goal: v.string() },
-  handler: async (ctx, { userId, goal }) => {
+  handler: async (ctx, { goal }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const docs = await ctx.db
       .query("plans")
-      .withIndex("by_user_goal", (q) => q.eq("userId", userId).eq("goal", goal))
+      .withIndex("by_user_goal", (q) => q.eq("userId", identity.subject).eq("goal", goal))
       .collect();
     await Promise.all(docs.map((d) => ctx.db.delete(d._id)));
     return { deleted: docs.length };
+  },
+});
+
+// Additional secured plan APIs
+export const getPlan = query({
+  args: { id: v.id("plans") },
+  handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    const doc = await ctx.db.get(id);
+    if (!doc || doc.userId !== identity.subject) throw new Error("Not found");
+    return doc;
+  },
+});
+
+export const updatePlan = mutation({
+  args: { id: v.id("plans"), patch: v.any() },
+  handler: async (ctx, { id, patch }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    const doc = await ctx.db.get(id);
+    if (!doc || doc.userId !== identity.subject) throw new Error("Not found");
+    await ctx.db.patch(id, { ...patch, updatedAt: Date.now() });
+  },
+});
+
+export const archivePlan = mutation({
+  args: { id: v.id("plans"), archived: v.optional(v.boolean()) },
+  handler: async (ctx, { id, archived = true }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    const doc = await ctx.db.get(id);
+    if (!doc || doc.userId !== identity.subject) throw new Error("Not found");
+    await ctx.db.patch(id, { archived, updatedAt: Date.now() });
   },
 });
 

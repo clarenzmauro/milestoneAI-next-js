@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaCheck, FaTimes, FaRobot, FaUser } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { DailyTask, FullPlan } from '../../types/planTypes';
+import { useQuery, useMutation, useAction } from 'convex/react';
+import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
+import { usePlan } from '../../contexts/PlanContext';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -13,56 +16,65 @@ interface TaskModalProps {
   onSendMessage: (message: string, task: DailyTask, plan: FullPlan) => Promise<string>;
 }
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
-
 export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplete, onSendMessage }: TaskModalProps) {
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { currentPlanId } = usePlan();
+
+  const messagesPage = useQuery(
+    api.chat.listMessages,
+    currentPlanId ? { planId: currentPlanId } : 'skip'
+  );
+  const messages = messagesPage?.page ?? [];
+  const appendMessage = useMutation(api.chat.appendMessage);
+  const recomputeInsights = useAction(api.insights.recomputeInsightsForPlan);
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !task || !plan || isLoading) return;
+    if (!messageInput.trim() || !currentPlanId || isLoading) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const userMessageContent = messageInput.trim();
+    setMessageInput(''); // Clear input immediately
+
+    // 1. Persist user message
+    await appendMessage({
+      planId: currentPlanId,
       role: 'user',
-      content: messageInput.trim(),
-      timestamp: new Date(),
-    };
+      content: userMessageContent,
+    });
 
-    setChatMessages(prev => [...prev, userMessage]);
-    setMessageInput('');
+    // 2. Call AI to get response
     setIsLoading(true);
-
     try {
-      const response = await onSendMessage(messageInput.trim(), task, plan);
+      const response = await onSendMessage(userMessageContent, task!, plan!);
 
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+      // 3. Persist assistant message
+      await appendMessage({
+        planId: currentPlanId,
         role: 'assistant',
         content: response,
-        timestamp: new Date(),
-      };
-
-      setChatMessages(prev => [...prev, assistantMessage]);
+      });
+      // Fire-and-forget recompute of insights
+      recomputeInsights({ planId: currentPlanId }).catch(() => {});
     } catch (error) {
       console.error('Failed to send message:', error);
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+      // Persist the error message from the assistant
+      await appendMessage({
+        planId: currentPlanId,
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
 
   if (!isOpen || !task) return null;
@@ -135,8 +147,8 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
             </div>
 
             {/* Chat Messages - Scrollable container */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-              {chatMessages.length === 0 ? (
+            <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+              {messages.length === 0 && !isLoading ? (
                 <div className="text-center py-8">
                   <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
                   <p className="text-sm text-[var(--text-secondary)]">
@@ -144,9 +156,9 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                   </p>
                 </div>
               ) : (
-                chatMessages.map((message) => (
+                messages.map((message) => (
                   <div
-                    key={message.id}
+                    key={message._id}
                     className={`flex items-start space-x-2 ${
                       message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
@@ -192,7 +204,7 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                         </ReactMarkdown>
                       </div>
                       <div className="mt-1 text-[10px] text-[var(--text-secondary)]">
-                        {message.timestamp.toLocaleTimeString()}
+                        {new Date(message._creationTime).toLocaleTimeString()}
                       </div>
                     </div>
                     {message.role === 'user' && (
@@ -240,11 +252,11 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                   placeholder="Ask about this task..."
                   aria-label="Chat input"
                   className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--neutral-950)] text-[var(--text-inverse)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-cyan)] focus:outline-none text-sm resize-none max-h-40"
-                  disabled={isLoading}
+                  disabled={isLoading || !currentPlanId}
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || isLoading}
+                  disabled={!messageInput.trim() || isLoading || !currentPlanId}
                   aria-label="Send message"
                   className="px-3 py-2 bg-[var(--accent-cyan)] text-white rounded-lg font-medium hover:bg-opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >

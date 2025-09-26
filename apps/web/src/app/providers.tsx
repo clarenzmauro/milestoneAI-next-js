@@ -2,43 +2,31 @@
 import React, { useMemo } from 'react';
 import { Toaster } from 'sonner';
 import { PlanProvider } from './contexts/PlanContext';
-import { ConvexProvider, ConvexReactClient } from 'convex/react';
+import { ConvexReactClient } from 'convex/react';
+import { ConvexProviderWithClerk } from 'convex/react-clerk';
+import { useAuth } from '@clerk/nextjs';
 
 /**
  * @description
- * Client-side providers wrapper. Sets up optional Convex client and the
- * application-level `PlanProvider`, plus a global toast system.
+ * Client-side providers wrapper. Sets up Convex client integrated with Clerk auth
+ * and the application-level `PlanProvider`, plus a global toast system.
  *
  * @receives data from:
  * - layout.tsx; RootLayout: Supplies `children` to be rendered within providers
  *
  * @sends data to:
  * - contexts/PlanContext.tsx; PlanProvider: Supplies plan state to the app
- * - convex backend (optional): Configures Convex context if `NEXT_PUBLIC_CONVEX_URL` is present
+ * - convex backend: Configures Convex context with Clerk auth forwarding
  * - sonner Toaster: Renders global toast portal
  *
  * @sideEffects:
- * - Initializes Clerk and (optionally) Convex clients for the lifetime of the app.
+ * - Initializes Convex with Clerk so server functions receive user identity.
  */
 export default function Providers({ children }: { children: React.ReactNode }) {
   const convexClient = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_CONVEX_URL;
     const isProduction = process.env.NODE_ENV === 'production';
     const finalUrl = url || (isProduction ? undefined : 'http://127.0.0.1:3210');
-    /**
-     * @description
-     * In production, require `NEXT_PUBLIC_CONVEX_URL` to be set to avoid leaking
-     * to a localhost fallback.
-     *
-     * @receives data from:
-     * - providers.tsx; Providers: reads env and constructs client
-     *
-     * @sends data to:
-     * - ConvexReactClient: initialized with endpoint URL
-     *
-     * @sideEffects:
-     * - Throws in production when env is missing
-     */
     if (!finalUrl) {
       throw new Error('NEXT_PUBLIC_CONVEX_URL must be set in production');
     }
@@ -52,7 +40,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     </PlanProvider>
   );
 
-  return <ConvexProvider client={convexClient}>{AppTree}</ConvexProvider>;
+  return (
+    <ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
+      {AppTree}
+    </ConvexProviderWithClerk>
+  );
 }
 
 

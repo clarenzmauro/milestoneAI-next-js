@@ -14,7 +14,9 @@
     "dev:server": "turbo -F @milestoneAI-next-js/backend dev",
     "dev:setup": "turbo -F @milestoneAI-next-js/backend dev:setup"
   },
-  "dependencies": {},
+  "dependencies": {
+    "convex": "^1.27.3"
+  },
   "devDependencies": {
     "turbo": "^2.5.6"
   },
