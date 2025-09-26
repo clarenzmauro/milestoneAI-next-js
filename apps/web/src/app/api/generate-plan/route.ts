@@ -4,23 +4,23 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = 'gemini-flash-latest';
 
 const GEMINI_CONFIG = {
-  temperature: 0.7,
+  temperature: 0.6,
   topK: 40,
   topP: 0.95,
   maxOutputTokens: 8192,
   thinkingConfig: {
     includeThoughts: false,
-    thinkingBudget: 2048,
+    thinkingBudget: 24576,
   },
   frequencyPenalty: 0.0,
   presencePenalty: 0.0,
   planGeneration: {
-    temperature: 0.5,
-    topK: 20,
-    topP: 0.9,
+    temperature: 0.6,
+    topK: 40,
+    topP: 0.95,
     thinkingBudget: 24576,
   },
 };

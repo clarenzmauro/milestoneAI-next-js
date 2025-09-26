@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MODEL_NAME = 'gemini-2.5-flash-lite';
+const MODEL_NAME = 'gemini-flash-latest';
 
 const GEMINI_CONFIG = {
   temperature: 0.6,
@@ -18,8 +18,8 @@ const GEMINI_CONFIG = {
   frequencyPenalty: 0.0,
   presencePenalty: 0.0,
   chatGeneration: {
-    temperature: 0.8,
-    topK: 50,
+    temperature: 0.6,
+    topK: 40,
     topP: 0.95,
     thinkingBudget: 24576,
   },

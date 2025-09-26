@@ -4,14 +4,31 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = 'gemini-flash-latest';
 
 const GEMINI_CONFIG = {
   temperature: 0.3,
   topK: 20,
-  topP: 0.8,
-  maxOutputTokens: 2048,
+  topP: 0.95,
+  maxOutputTokens: 8192,
 };
+
+function getEndDate(currentDateTime: any, duration: number): string {
+  if (!currentDateTime || !currentDateTime.timestamp) {
+    return 'the end of the sprint';
+  }
+
+  const startDate = new Date(currentDateTime.timestamp);
+  // Add duration days. Subtract 1 because the start day is day 1.
+  startDate.setDate(startDate.getDate() + duration - 1);
+
+  return startDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
 
 /**
  * @description
@@ -103,11 +120,13 @@ export async function POST(req: NextRequest) {
 function createValidationPrompt(goal: string, duration?: number, currentDateTime?: any): string {
   let timeframeContext = '';
   let timeframeGuidance = '';
+  let sprintEndDate = '';
 
   if (duration) {
+    sprintEndDate = getEndDate(currentDateTime, duration);
     // Provide specific guidance based on timeframe
     if (duration === 7) {
-      timeframeContext = `This is a 7-day quick sprint. Goals must be achievable within ONE WEEK.`;
+      timeframeContext = `This is a 7-day quick sprint. Goals must be achievable within ONE WEEK, ending on ${sprintEndDate}.`;
       timeframeGuidance = `
 7-DAY SPRINT GUIDELINES:
 - Focus on immediate, actionable tasks
@@ -115,7 +134,7 @@ function createValidationPrompt(goal: string, duration?: number, currentDateTime
 - Examples: "Complete 3 blog posts", "Learn basic React components", "Run 5km daily for 7 days"
 - Reject: Long-term projects, major lifestyle changes, complex learning paths`;
     } else if (duration === 30) {
-      timeframeContext = `This is a 30-day focused month. Goals must be achievable within ONE MONTH.`;
+      timeframeContext = `This is a 30-day focused month. Goals must be achievable within ONE MONTH, ending on ${sprintEndDate}.`;
       timeframeGuidance = `
 30-DAY MONTH GUIDELINES:
 - Medium-term projects with clear milestones
@@ -123,7 +142,7 @@ function createValidationPrompt(goal: string, duration?: number, currentDateTime
 - Examples: "Build a portfolio website", "Read 4 books", "Lose 5 pounds with diet + exercise"
 - Reject: Major career changes, complex products, multi-month transformations`;
     } else if (duration === 90) {
-      timeframeContext = `This is a 90-day quarterly plan. Goals must be achievable within THREE MONTHS.`;
+      timeframeContext = `This is a 90-day quarterly plan. Goals must be achievable within THREE MONTHS, ending on ${sprintEndDate}.`;
       timeframeGuidance = `
 90-DAY QUARTERLY GUIDELINES:
 - Significant projects with multiple phases
@@ -131,7 +150,7 @@ function createValidationPrompt(goal: string, duration?: number, currentDateTime
 - Examples: "Launch SaaS MVP", "Master a new technology stack", "Build a business from scratch"
 - Reject: Overly ambitious goals, career pivots requiring 6+ months`;
     } else {
-      timeframeContext = `This is a ${duration}-day custom timeframe. Goals must be realistically achievable within exactly ${duration} days.`;
+      timeframeContext = `This is a ${duration}-day custom timeframe. Goals must be realistically achievable within exactly ${duration} days, ending on ${sprintEndDate}.`;
       timeframeGuidance = `
 CUSTOM TIMEFRAME GUIDELINES:
 - Scale goal complexity proportionally to available days
@@ -169,10 +188,11 @@ Validation guidelines:
 - Goals must be specific, measurable, achievable, relevant, and time-bound (SMART criteria)
 - REJECT goals that are inappropriate for the timeframe (e.g., "learn 5 programming languages" in 7 days)
 - Consider current date/time context for seasonal relevance
+- Suggestions MUST utilize the full duration of ${duration || 'the specified'} days and set the final deadline as ${sprintEndDate || 'the end of the sprint'}. Do NOT suggest deadlines that are in the past or only use a fraction of the available days.
 
 Examples by timeframe:
 7 DAYS: "Write and publish 2 blog posts", "Complete React tutorial and build 1 app", "Establish morning meditation habit"
-30 DAYS: "Launch personal website with 5 pages", "Read 3 technical books", "Complete online course certification"
+30 DAYS: "Launch personal website with 5 pages", "Read 3 technical books", "Lose 5 pounds with diet + exercise"
 90 DAYS: "Build and deploy full-stack web app", "Master data science fundamentals", "Start profitable side business"
 
 Field explanations:
