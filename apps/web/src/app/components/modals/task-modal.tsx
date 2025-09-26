@@ -171,12 +171,12 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                             p: ({ node, ...props }) => <p className="mb-2" {...props} />,
                             ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
                             ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                            li: ({ node, ordered, ...props }) => <li className="ml-1" {...props} />,
+                            li: ({ node, ...props }) => <li className="ml-1" {...props} />,
                             a: ({ node, ...props }) => <a className="underline text-[var(--accent-cyan)]" target="_blank" rel="noreferrer" {...props} />,
                             strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
                             em: ({ node, ...props }) => <em className="italic" {...props} />,
-                            code: ({ inline, ...props }) => (
-                              inline ? (
+                            code: (props: any) => (
+                              props.inline ? (
                                 <code className="px-1 rounded bg-black/20" {...props} />
                               ) : (
                                 <code className="block p-3 rounded bg-black/30 overflow-x-auto text-xs" {...props} />
