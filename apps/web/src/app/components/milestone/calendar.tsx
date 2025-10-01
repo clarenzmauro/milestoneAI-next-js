@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
-import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../../types/planTypes';
-import { usePlan } from '../../contexts/PlanContext';
-import TaskModal from '../modals/task-modal';
-import { chatWithAI } from '../../services/aiService';
-import { FaCheck, FaCalendarAlt } from 'react-icons/fa';
+import React, { useState } from "react";
+import type {
+  FullPlan,
+  MonthlyMilestone,
+  WeeklyObjective,
+  DailyTask,
+} from "../../types/planTypes";
+import { usePlan } from "../../contexts/plan-context";
+import TaskModal from "../modals/task-modal";
+import { chatWithAI } from "../../services/ai-service";
+import { FaCheck, FaCalendarAlt } from "react-icons/fa";
 
 interface CalendarProps {
   plan?: FullPlan | null;
@@ -26,7 +31,11 @@ interface CalendarProps {
  * @sideEffects:
  * - Updates task completion state through context
  */
-const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan }) => {
+const Calendar: React.FC<CalendarProps> = ({
+  plan,
+  streamingText,
+  streamingPlan,
+}) => {
   const { toggleTaskCompletion } = usePlan();
   const [currentDate] = React.useState(new Date());
   const [selectedTask, setSelectedTask] = useState<DailyTask | null>(null);
@@ -43,8 +52,8 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     let totalDays = 0;
 
     // Calculate total days in the plan
-    displayPlan.monthlyMilestones?.forEach(month => {
-      month.weeklyObjectives?.forEach(week => {
+    displayPlan.monthlyMilestones?.forEach((month) => {
+      month.weeklyObjectives?.forEach((week) => {
         totalDays += week.dailyTasks?.length || 0;
       });
     });
@@ -79,11 +88,11 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     const taskToWeekMap: Map<DailyTask, WeeklyObjective> = new Map();
 
     if (displayPlan.monthlyMilestones) {
-      displayPlan.monthlyMilestones.forEach(month => {
+      displayPlan.monthlyMilestones.forEach((month) => {
         if (month.weeklyObjectives) {
-          month.weeklyObjectives.forEach(week => {
+          month.weeklyObjectives.forEach((week) => {
             if (week.dailyTasks) {
-              week.dailyTasks.forEach(task => {
+              week.dailyTasks.forEach((task) => {
                 allTasks.push(task);
                 taskToMonthMap.set(task, month);
                 taskToWeekMap.set(task, week);
@@ -110,9 +119,11 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
         month: currentMonth,
         week: currentWeek,
         tasks: foundTasks,
-        isCurrentMonth: date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear(),
+        isCurrentMonth:
+          date.getMonth() === currentDate.getMonth() &&
+          date.getFullYear() === currentDate.getFullYear(),
         isToday: date.toDateString() === currentDate.toDateString(),
-        hasTasks: foundTasks.length > 0
+        hasTasks: foundTasks.length > 0,
       });
     }
 
@@ -144,7 +155,7 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
 
     // Group days by month
     const daysByMonth: { [key: string]: typeof calendarData } = {};
-    calendarData.forEach(day => {
+    calendarData.forEach((day) => {
       const monthKey = `${day.date.getFullYear()}-${day.date.getMonth()}`;
       if (!daysByMonth[monthKey]) {
         daysByMonth[monthKey] = [];
@@ -153,70 +164,75 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     });
 
     // Convert to months array
-    Object.keys(daysByMonth).sort().forEach(monthKey => {
-      const days = daysByMonth[monthKey];
-      const firstDay = days[0];
-      const monthData = displayPlan?.monthlyMilestones?.find(m =>
-        m.month === firstDay.date.getMonth() + 1
-      ) || null;
+    Object.keys(daysByMonth)
+      .sort()
+      .forEach((monthKey) => {
+        const days = daysByMonth[monthKey];
+        const firstDay = days[0];
+        const monthData =
+          displayPlan?.monthlyMilestones?.find(
+            (m) => m.month === firstDay.date.getMonth() + 1
+          ) || null;
 
-      // Group days by weeks (starting Sunday)
-      const weeks: Array<{
-        weekStart: Date;
-        days: Array<{
-          date: Date;
-          month: MonthlyMilestone | null;
-          week: WeeklyObjective | null;
-          tasks: DailyTask[];
-          isCurrentMonth: boolean;
-          isToday: boolean;
-          hasTasks: boolean;
-          dayOfWeek: number;
-        }>;
-      }> = [];
+        // Group days by weeks (starting Sunday)
+        const weeks: Array<{
+          weekStart: Date;
+          days: Array<{
+            date: Date;
+            month: MonthlyMilestone | null;
+            week: WeeklyObjective | null;
+            tasks: DailyTask[];
+            isCurrentMonth: boolean;
+            isToday: boolean;
+            hasTasks: boolean;
+            dayOfWeek: number;
+          }>;
+        }> = [];
 
-      const daysInMonth = days;
-      let currentWeek: typeof weeks[0]['days'] = [];
-      let weekStart = new Date(firstDay.date);
+        const daysInMonth = days;
+        let currentWeek: (typeof weeks)[0]["days"] = [];
+        let weekStart = new Date(firstDay.date);
 
-      // Find the Sunday of the first week
-      const dayOfWeek = firstDay.date.getDay(); // 0 = Sunday, 6 = Saturday
-      weekStart.setDate(firstDay.date.getDate() - dayOfWeek);
+        // Find the Sunday of the first week
+        const dayOfWeek = firstDay.date.getDay(); // 0 = Sunday, 6 = Saturday
+        weekStart.setDate(firstDay.date.getDate() - dayOfWeek);
 
-      daysInMonth.forEach(day => {
-        const dayOfWeek = day.date.getDay();
+        daysInMonth.forEach((day) => {
+          const dayOfWeek = day.date.getDay();
 
-        // If this is Sunday and we have days in current week, start new week
-        if (dayOfWeek === 0 && currentWeek.length > 0) {
-          weeks.push({
-            weekStart: new Date(weekStart),
-            days: [...currentWeek]
+          // If this is Sunday and we have days in current week, start new week
+          if (dayOfWeek === 0 && currentWeek.length > 0) {
+            weeks.push({
+              weekStart: new Date(weekStart),
+              days: [...currentWeek],
+            });
+            currentWeek = [];
+            weekStart = new Date(day.date);
+          }
+
+          currentWeek.push({
+            ...day,
+            dayOfWeek,
           });
-          currentWeek = [];
-          weekStart = new Date(day.date);
+        });
+
+        // Add the last week if it has days
+        if (currentWeek.length > 0) {
+          weeks.push({
+            weekStart,
+            days: currentWeek,
+          });
         }
 
-        currentWeek.push({
-          ...day,
-          dayOfWeek
+        months.push({
+          monthName: firstDay.date.toLocaleDateString("en-US", {
+            month: "long",
+          }),
+          year: firstDay.date.getFullYear(),
+          monthData,
+          weeks,
         });
       });
-
-      // Add the last week if it has days
-      if (currentWeek.length > 0) {
-        weeks.push({
-          weekStart,
-          days: currentWeek
-        });
-      }
-
-      months.push({
-        monthName: firstDay.date.toLocaleDateString('en-US', { month: 'long' }),
-        year: firstDay.date.getFullYear(),
-        monthData,
-        weeks
-      });
-    });
 
     return months;
   }, [calendarData, displayPlan?.monthlyMilestones]);
@@ -230,13 +246,21 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     // Find the task in the plan structure to get the correct indices
     if (!displayPlan?.monthlyMilestones) return;
 
-    for (let monthIdx = 0; monthIdx < displayPlan.monthlyMilestones.length; monthIdx++) {
+    for (
+      let monthIdx = 0;
+      monthIdx < displayPlan.monthlyMilestones.length;
+      monthIdx++
+    ) {
       const month = displayPlan.monthlyMilestones[monthIdx];
       if (month.weeklyObjectives) {
-        for (let weekIdx = 0; weekIdx < month.weeklyObjectives.length; weekIdx++) {
+        for (
+          let weekIdx = 0;
+          weekIdx < month.weeklyObjectives.length;
+          weekIdx++
+        ) {
           const week = month.weeklyObjectives[weekIdx];
           if (week.dailyTasks) {
-            const taskIdx = week.dailyTasks.findIndex(t => t === task);
+            const taskIdx = week.dailyTasks.findIndex((t) => t === task);
             if (taskIdx !== -1) {
               await toggleTaskCompletion(monthIdx, weekIdx, task.day);
               return;
@@ -247,7 +271,11 @@ const Calendar: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan 
     }
   };
 
-  const handleSendMessage = async (message: string, task: DailyTask, plan: FullPlan): Promise<string> => {
+  const handleSendMessage = async (
+    message: string,
+    task: DailyTask,
+    plan: FullPlan
+  ): Promise<string> => {
     try {
       // Create a contextual message for the AI
       const contextualMessage = `Regarding this specific task: "${task.description}"
@@ -257,27 +285,34 @@ User question: ${message}
 Please provide helpful guidance about this task in the context of the overall goal: "${plan.goal}". Focus on how this task contributes to the plan and offer practical advice.`;
 
       // Use empty history for task-specific chat
-      const history: Array<{ role: 'user' | 'model'; parts: string }> = [];
+      const history: Array<{ role: "user" | "model"; parts: string }> = [];
 
       return await chatWithAI(contextualMessage, history, plan);
     } catch (error) {
-      console.error('Failed to send message to AI:', error);
-      return 'Sorry, I encountered an error while processing your question. Please try again.';
+      console.error("Failed to send message to AI:", error);
+      return "Sorry, I encountered an error while processing your question. Please try again.";
     }
   };
 
   // Show streaming text if available (during plan generation)
   if (streamingText) {
     return (
-      <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
-        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
-        borderColor: 'var(--border-subtle)',
-      }}>
+      <article
+        className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none"
+        style={{
+          background:
+            "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)",
+          borderColor: "var(--border-subtle)",
+        }}
+      >
         <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)]" />
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+              <h2
+                className="text-lg font-semibold"
+                style={{ color: "var(--text-inverse)" }}
+              >
                 Live Plan Generation
               </h2>
             </div>
@@ -285,10 +320,12 @@ Please provide helpful guidance about this task in the context of the overall go
               <div className="animate-pulse">
                 <div className="w-2 h-2 bg-[var(--accent-cyan)] rounded-full"></div>
               </div>
-              <span className="text-xs text-[var(--accent-cyan)] font-medium">Streaming</span>
+              <span className="text-xs text-[var(--accent-cyan)] font-medium">
+                Streaming
+              </span>
             </div>
           </div>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
             Gemini AI is creating your personalized milestone plan in real-time
           </p>
         </div>
@@ -302,7 +339,9 @@ Please provide helpful guidance about this task in the context of the overall go
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-transparent border-t-[var(--accent-cyan)] absolute top-0"></div>
               </div>
               <div>
-                <h3 className="font-medium text-[var(--text-inverse)]">AI Plan Generation</h3>
+                <h3 className="font-medium text-[var(--text-inverse)]">
+                  AI Plan Generation
+                </h3>
                 <p className="text-xs text-[var(--text-muted)]">
                   Processing with Gemini 2.5 Flash
                 </p>
@@ -322,8 +361,12 @@ Please provide helpful guidance about this task in the context of the overall go
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-sm font-medium text-[var(--text-inverse)]">Gemini AI</span>
-                    <span className="text-xs text-[var(--text-muted)]">Generating milestone plan...</span>
+                    <span className="text-sm font-medium text-[var(--text-inverse)]">
+                      Gemini AI
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      Generating milestone plan...
+                    </span>
                   </div>
                   <div className="prose prose-sm max-w-none">
                     <pre className="text-sm leading-6 whitespace-pre-wrap font-mono text-[var(--text-inverse)] bg-transparent border-0 p-0 m-0">
@@ -341,62 +384,82 @@ Please provide helpful guidance about this task in the context of the overall go
                   <span>Building your milestone roadmap...</span>
                   <div className="flex space-x-1">
                     <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"></div>
-                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div
+                      className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"
+                      style={{ animationDelay: "0.1s" }}
+                    ></div>
+                    <div
+                      className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-      </div>
+        </div>
 
-      {/* Task Modal */}
-      <TaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => {
-          setIsTaskModalOpen(false);
-          setSelectedTask(null);
-        }}
-        task={selectedTask}
-        plan={displayPlan || null}
-        onToggleComplete={handleTaskToggle}
-        onSendMessage={handleSendMessage}
-      />
-    </article>
+        {/* Task Modal */}
+        <TaskModal
+          isOpen={isTaskModalOpen}
+          onClose={() => {
+            setIsTaskModalOpen(false);
+            setSelectedTask(null);
+          }}
+          task={selectedTask}
+          plan={displayPlan || null}
+          onToggleComplete={handleTaskToggle}
+          onSendMessage={handleSendMessage}
+        />
+      </article>
     );
   }
 
   // Show error if no plan provided
   if (!displayPlan) {
     return (
-      <article className="group relative overflow-hidden rounded-lg border p-6 text-center transition-shadow motion-reduce:transition-none" style={{
-        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
-        borderColor: 'var(--border-subtle)',
-      }}>
-          <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)] text-4xl mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-inverse)' }}>
-            No Plan Available
-          </h3>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Start by creating your first milestone plan.
-          </p>
-        </article>
+      <article
+        className="group relative overflow-hidden rounded-lg border p-6 text-center transition-shadow motion-reduce:transition-none"
+        style={{
+          background:
+            "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)",
+          borderColor: "var(--border-subtle)",
+        }}
+      >
+        <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)] text-4xl mx-auto mb-4" />
+        <h3
+          className="text-lg font-semibold mb-2"
+          style={{ color: "var(--text-inverse)" }}
+        >
+          No Plan Available
+        </h3>
+        <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
+          Start by creating your first milestone plan.
+        </p>
+      </article>
     );
   }
 
   return (
-    <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
-      background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
-      borderColor: 'var(--border-subtle)',
-    }}>
+    <article
+      className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none"
+      style={{
+        background:
+          "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)",
+        borderColor: "var(--border-subtle)",
+      }}
+    >
       <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
         <div className="flex items-center space-x-2">
           <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)]" />
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--text-inverse)" }}
+          >
             Plan Calendar
           </h2>
         </div>
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
           Track your milestones, objectives, and daily tasks
         </p>
       </div>
@@ -406,7 +469,10 @@ Please provide helpful guidance about this task in the context of the overall go
           <div key={`${month.monthName}-${month.year}`} className="space-y-4">
             {/* Month Header */}
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+              <h3
+                className="text-lg font-semibold"
+                style={{ color: "var(--text-inverse)" }}
+              >
                 {month.monthName} {month.year}
               </h3>
               {month.monthData && (
@@ -420,51 +486,65 @@ Please provide helpful guidance about this task in the context of the overall go
             <div className="bg-[var(--bg-deep)] rounded-lg border border-[var(--border-subtle)] overflow-hidden">
               {/* Day Headers */}
               <div className="grid grid-cols-7 bg-[var(--neutral-950)] border-b border-[var(--border-subtle)]">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="p-3 text-center text-sm font-medium text-[var(--text-muted)]">
-                    {day}
-                  </div>
-                ))}
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                  (day) => (
+                    <div
+                      key={day}
+                      className="p-3 text-center text-sm font-medium text-[var(--text-muted)]"
+                    >
+                      {day}
+                    </div>
+                  )
+                )}
               </div>
 
               {/* Weeks */}
               {month.weeks.map((week, weekIndex) => {
                 // Create a full 7-day week with empty cells
                 const fullWeek = Array.from({ length: 7 }, (_, i) => {
-                  const dayData = week.days.find(d => d.dayOfWeek === i);
-                  return dayData || {
-                    date: new Date(week.weekStart.getTime() + i * 24 * 60 * 60 * 1000),
-                    month: null,
-                    week: null,
-                    tasks: [],
-                    isCurrentMonth: false,
-                    isToday: false,
-                    hasTasks: false,
-                    dayOfWeek: i
-                  };
+                  const dayData = week.days.find((d) => d.dayOfWeek === i);
+                  return (
+                    dayData || {
+                      date: new Date(
+                        week.weekStart.getTime() + i * 24 * 60 * 60 * 1000
+                      ),
+                      month: null,
+                      week: null,
+                      tasks: [],
+                      isCurrentMonth: false,
+                      isToday: false,
+                      hasTasks: false,
+                      dayOfWeek: i,
+                    }
+                  );
                 });
 
                 return (
-                  <div key={weekIndex} className="grid grid-cols-7 border-b border-[var(--border-subtle)] last:border-b-0">
+                  <div
+                    key={weekIndex}
+                    className="grid grid-cols-7 border-b border-[var(--border-subtle)] last:border-b-0"
+                  >
                     {fullWeek.map((day, dayIndex) => (
                       <div
                         key={dayIndex}
                         className={`min-h-[100px] p-2 border-r border-[var(--border-subtle)] last:border-r-0 ${
                           day.isCurrentMonth
                             ? day.isToday
-                              ? 'bg-[var(--surface-card)]'
-                              : 'bg-[var(--bg-deep)]'
-                            : 'bg-[var(--neutral-950)]'
-                        } ${day.hasTasks ? 'ring-2 ring-[var(--accent-cyan,#22D3EE)] ring-opacity-30' : ''}`}
+                              ? "bg-[var(--surface-card)]"
+                              : "bg-[var(--bg-deep)]"
+                            : "bg-[var(--neutral-950)]"
+                        } ${day.hasTasks ? "ring-2 ring-[var(--accent-cyan,#22D3EE)] ring-opacity-30" : ""}`}
                       >
                         {/* Day Number */}
-                        <div className={`text-xs font-medium mb-1 ${
-                          day.isCurrentMonth
-                            ? day.isToday
-                              ? 'text-[var(--accent-cyan,#22D3EE)]'
-                              : 'text-[var(--text-inverse)]'
-                            : 'text-[var(--text-secondary)]'
-                        }`}>
+                        <div
+                          className={`text-xs font-medium mb-1 ${
+                            day.isCurrentMonth
+                              ? day.isToday
+                                ? "text-[var(--accent-cyan,#22D3EE)]"
+                                : "text-[var(--text-inverse)]"
+                              : "text-[var(--text-secondary)]"
+                          }`}
+                        >
                           {day.date.getDate()}
                         </div>
 
@@ -480,19 +560,21 @@ Please provide helpful guidance about this task in the context of the overall go
                                 <div
                                   className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
                                     task.completed
-                                      ? 'bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]'
-                                      : 'border-[var(--border-subtle)] group-hover:border-[var(--accent-cyan,#22D3EE)]'
+                                      ? "bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]"
+                                      : "border-[var(--border-subtle)] group-hover:border-[var(--accent-cyan,#22D3EE)]"
                                   }`}
                                 >
                                   {task.completed && (
                                     <FaCheck className="text-white text-xs" />
                                   )}
                                 </div>
-                                <span className={`text-xs leading-tight group-hover:text-[var(--accent-cyan)] transition-colors ${
-                                  task.completed
-                                    ? 'line-through text-[var(--text-secondary)]'
-                                    : 'text-[var(--text-inverse)]'
-                                }`}>
+                                <span
+                                  className={`text-xs leading-tight group-hover:text-[var(--accent-cyan)] transition-colors ${
+                                    task.completed
+                                      ? "line-through text-[var(--text-secondary)]"
+                                      : "text-[var(--text-inverse)]"
+                                  }`}
+                                >
                                   {task.description}
                                 </span>
                               </div>

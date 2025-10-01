@@ -1,9 +1,9 @@
 "use client";
-import React from 'react';
-import { usePlan } from '../contexts/PlanContext';
-import PlanningPage from '../components/planning/planning-page';
-import GoalPage from '../components/planning/goal-page';
-import MilestonePage from '../components/planning/milestone-page';
+import React from "react";
+import { usePlan } from "../contexts/plan-context";
+import PlanningPage from "../components/planning/planning-page";
+import GoalPage from "../components/planning/goal-page";
+import MilestonePage from "../components/planning/milestone-page";
 
 export default function AppPage() {
   const { selectedDuration, goal } = usePlan();

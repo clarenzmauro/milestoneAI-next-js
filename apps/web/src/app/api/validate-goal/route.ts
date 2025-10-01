@@ -1,32 +1,32 @@
-import { NextRequest } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const MODEL_NAME = 'gemini-flash-latest';
+const MODEL_NAME = "gemini-flash-latest";
 
 const GEMINI_CONFIG = {
   temperature: 0.3,
-  topK: 20,
+  topK: 40,
   topP: 0.95,
   maxOutputTokens: 8192,
 };
 
 function getEndDate(currentDateTime: any, duration: number): string {
   if (!currentDateTime || !currentDateTime.timestamp) {
-    return 'the end of the sprint';
+    return "the end of the sprint";
   }
 
   const startDate = new Date(currentDateTime.timestamp);
   // Add duration days. Subtract 1 because the start day is day 1.
   startDate.setDate(startDate.getDate() + duration - 1);
 
-  return startDate.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return startDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
@@ -47,16 +47,26 @@ function getEndDate(currentDateTime: any, duration: number): string {
 export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not set' }), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: "GEMINI_API_KEY is not set" }),
+      { status: 500 }
+    );
   }
 
-  const { goal, duration, currentDateTime } = await req.json().catch(() => ({ goal: '', duration: null, currentDateTime: null }));
-  if (!goal || typeof goal !== 'string') {
-    return new Response(JSON.stringify({ error: 'Goal is required in the request body.' }), { status: 400 });
+  const { goal, duration, currentDateTime } = await req
+    .json()
+    .catch(() => ({ goal: "", duration: null, currentDateTime: null }));
+  if (!goal || typeof goal !== "string") {
+    return new Response(
+      JSON.stringify({ error: "Goal is required in the request body." }),
+      { status: 400 }
+    );
   }
 
   if (goal.length > 1000) {
-    return new Response(JSON.stringify({ error: 'Goal is too long.' }), { status: 413 });
+    return new Response(JSON.stringify({ error: "Goal is too long." }), {
+      status: 413,
+    });
   }
 
   try {
@@ -71,7 +81,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const prompt = createValidationPrompt(goal, duration || undefined, currentDateTime);
+    const prompt = createValidationPrompt(
+      goal,
+      duration || undefined,
+      currentDateTime
+    );
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -79,10 +93,10 @@ export async function POST(req: NextRequest) {
 
     // Clean up the response - Gemini sometimes wraps JSON in markdown code blocks
     text = text.trim();
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (text.startsWith('```')) {
-      text = text.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    if (text.startsWith("```json")) {
+      text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    } else if (text.startsWith("```")) {
+      text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
     // Parse the JSON response from Gemini
@@ -90,17 +104,20 @@ export async function POST(req: NextRequest) {
 
     return new Response(JSON.stringify(validationResult), {
       headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store',
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
       },
     });
   } catch (err: any) {
-    console.error('Goal validation error:', err);
-    return new Response(JSON.stringify({
-      error: 'Failed to validate goal. Please try again.',
-      isValid: false,
-      suggestions: []
-    }), { status: 500 });
+    console.error("Goal validation error:", err);
+    return new Response(
+      JSON.stringify({
+        error: "Failed to validate goal. Please try again.",
+        isValid: false,
+        suggestions: [],
+      }),
+      { status: 500 }
+    );
   }
 }
 
@@ -117,10 +134,14 @@ export async function POST(req: NextRequest) {
  * @sideEffects:
  * - None
  */
-function createValidationPrompt(goal: string, duration?: number, currentDateTime?: any): string {
-  let timeframeContext = '';
-  let timeframeGuidance = '';
-  let sprintEndDate = '';
+function createValidationPrompt(
+  goal: string,
+  duration?: number,
+  currentDateTime?: any
+): string {
+  let timeframeContext = "";
+  let timeframeGuidance = "";
+  let sprintEndDate = "";
 
   if (duration) {
     sprintEndDate = getEndDate(currentDateTime, duration);
@@ -155,15 +176,17 @@ function createValidationPrompt(goal: string, duration?: number, currentDateTime
 CUSTOM TIMEFRAME GUIDELINES:
 - Scale goal complexity proportionally to available days
 - Ensure milestones fit within the exact timeframe
-- For ${duration} days: ${duration < 14 ? 'Focus on quick wins and skill acquisition' : duration < 60 ? 'Medium projects with clear deliverables' : 'Major initiatives with multiple milestones'}`;
+- For ${duration} days: ${duration < 14 ? "Focus on quick wins and skill acquisition" : duration < 60 ? "Medium projects with clear deliverables" : "Major initiatives with multiple milestones"}`;
     }
   }
 
   // Include current date/time context for more relevant suggestions
-  const dateTimeContext = currentDateTime ? `
+  const dateTimeContext = currentDateTime
+    ? `
 Current context: Today is ${currentDateTime.dayOfWeek}, ${currentDateTime.month} ${currentDateTime.date}, ${currentDateTime.year}.
 Current time: ${currentDateTime.time} (${currentDateTime.timestamp}).
-Consider seasonal factors, current month, and time of year when providing suggestions.` : '';
+Consider seasonal factors, current month, and time of year when providing suggestions.`
+    : "";
 
   return `You are an expert goal-setting coach. Analyze the following goal and provide a JSON response with validation and suggestions.
 
@@ -188,7 +211,7 @@ Validation guidelines:
 - Goals must be specific, measurable, achievable, relevant, and time-bound (SMART criteria)
 - REJECT goals that are inappropriate for the timeframe (e.g., "learn 5 programming languages" in 7 days)
 - Consider current date/time context for seasonal relevance
-- Suggestions MUST utilize the full duration of ${duration || 'the specified'} days and set the final deadline as ${sprintEndDate || 'the end of the sprint'}. Do NOT suggest deadlines that are in the past or only use a fraction of the available days.
+- Suggestions MUST utilize the full duration of ${duration || "the specified"} days and set the final deadline as ${sprintEndDate || "the end of the sprint"}. Do NOT suggest deadlines that are in the past or only use a fraction of the available days.
 
 Examples by timeframe:
 7 DAYS: "Write and publish 2 blog posts", "Complete React tutorial and build 1 app", "Establish morning meditation habit"

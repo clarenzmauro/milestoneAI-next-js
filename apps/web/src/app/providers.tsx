@@ -1,10 +1,10 @@
 "use client";
-import React, { useMemo } from 'react';
-import { Toaster } from 'sonner';
-import { PlanProvider } from './contexts/PlanContext';
-import { ConvexReactClient } from 'convex/react';
-import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { useAuth } from '@clerk/nextjs';
+import React, { useMemo } from "react";
+import { Toaster } from "sonner";
+import { PlanProvider } from "./contexts/plan-context";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { useAuth } from "@clerk/nextjs";
 
 /**
  * @description
@@ -25,10 +25,11 @@ import { useAuth } from '@clerk/nextjs';
 export default function Providers({ children }: { children: React.ReactNode }) {
   const convexClient = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-    const isProduction = process.env.NODE_ENV === 'production';
-    const finalUrl = url || (isProduction ? undefined : 'http://127.0.0.1:3210');
+    const isProduction = process.env.NODE_ENV === "production";
+    const finalUrl =
+      url || (isProduction ? undefined : "http://127.0.0.1:3210");
     if (!finalUrl) {
-      throw new Error('NEXT_PUBLIC_CONVEX_URL must be set in production');
+      throw new Error("NEXT_PUBLIC_CONVEX_URL must be set in production");
     }
     return new ConvexReactClient(finalUrl);
   }, []);
@@ -46,5 +47,3 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     </ConvexProviderWithClerk>
   );
 }
-
-

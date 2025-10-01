@@ -1,6 +1,5 @@
-import Layout from './components/layout/Layout'; 
-import { PlanProvider } from './contexts/PlanContext'; 
-import { Toaster } from 'sonner';
+import { PlanProvider } from "./contexts/plan-context";
+import { Toaster } from "sonner";
 
 /**
  * @description
@@ -18,7 +17,6 @@ import { Toaster } from 'sonner';
 function App() {
   return (
     <PlanProvider>
-      <Layout />
       <Toaster richColors position="bottom-right" />
     </PlanProvider>
   );

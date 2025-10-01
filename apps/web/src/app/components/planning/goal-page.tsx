@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { usePlan } from '../../contexts/PlanContext';
-import { validateGoal } from '../../services/aiService';
-import BackgroundGradients from '../BackgroundGradients';
+import React, { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { usePlan } from "../../contexts/plan-context";
+import { validateGoal } from "../../services/ai-service";
+import BackgroundGradients from "../BackgroundGradients";
 
 interface ValidationResult {
   isValid: boolean;
@@ -15,11 +15,15 @@ interface ValidationResult {
 
 export default function GoalPage() {
   const router = useRouter();
-  const [goal, setGoal] = useState('');
+  const [goal, setGoal] = useState("");
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const { setGoal: setContextGoal, selectedDuration, generateNewPlan } = usePlan();
+  const {
+    setGoal: setContextGoal,
+    selectedDuration,
+    generateNewPlan,
+  } = usePlan();
 
   const handleGoalValidation = useCallback(async (goalText: string) => {
     if (!goalText.trim() || goalText.length < 5) {
@@ -29,16 +33,19 @@ export default function GoalPage() {
 
     setIsValidating(true);
     try {
-      const result = await validateGoal(goalText.trim(), selectedDuration || undefined);
+      const result = await validateGoal(
+        goalText.trim(),
+        selectedDuration || undefined
+      );
       setValidation(result);
     } catch (error) {
-      console.error('Goal validation failed:', error);
+      console.error("Goal validation failed:", error);
       setValidation({
         isValid: false,
         confidence: 0,
-        feedback: 'Unable to validate goal. Please try again.',
+        feedback: "Unable to validate goal. Please try again.",
         suggestions: [],
-        category: 'other'
+        category: "other",
       });
     } finally {
       setIsValidating(false);
@@ -73,7 +80,7 @@ export default function GoalPage() {
     // If we have validation results and confidence is very low (< 30%), show warning but allow continuation
     if (!validation.isValid && validation.confidence < 30) {
       // For now, we'll allow continuation but you could add a confirmation dialog here
-      console.warn('Goal has low confidence but allowing continuation');
+      console.warn("Goal has low confidence but allowing continuation");
     }
 
     // Set the goal and start plan generation, then navigate immediately to show streaming
@@ -83,9 +90,9 @@ export default function GoalPage() {
       // Start plan generation with streaming - this will navigate immediately to show real-time updates
       generateNewPlan(trimmedGoal);
       // Navigate immediately to milestone page to show streaming progress
-      router.push('/app');
+      router.push("/app");
     } catch (error) {
-      console.error('Plan generation failed:', error);
+      console.error("Plan generation failed:", error);
       return; // Don't clear validation state if generation failed
     }
 
@@ -95,30 +102,52 @@ export default function GoalPage() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleContinue();
     }
   };
 
   return (
-    <main className="relative h-screen overflow-y-auto" style={{ backgroundColor: 'var(--bg-deep)' }}>
+    <main
+      className="relative h-screen overflow-y-auto"
+      style={{ backgroundColor: "var(--bg-deep)" }}
+    >
       <BackgroundGradients />
 
-
       {/* Navigation */}
-      <header className="sticky top-0 z-50 border-b backdrop-blur-md" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'transparent' }}>
-        <nav className="mx-auto flex max-w-7xl items-center px-6 py-4" aria-label="Primary">
-          <div className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>MilestoneAI</div>
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur-md"
+        style={{
+          borderColor: "var(--border-subtle)",
+          backgroundColor: "transparent",
+        }}
+      >
+        <nav
+          className="mx-auto flex max-w-7xl items-center px-6 py-4"
+          aria-label="Primary"
+        >
+          <div
+            className="text-lg font-semibold"
+            style={{ color: "var(--text-inverse)" }}
+          >
+            MilestoneAI
+          </div>
         </nav>
       </header>
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="relative mx-auto max-w-7xl px-6 py-12 text-center">
-          <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl" style={{ color: 'var(--text-inverse)' }}>
+          <h1
+            className="text-balance text-4xl font-bold tracking-tight sm:text-5xl"
+            style={{ color: "var(--text-inverse)" }}
+          >
             What do you want to focus on?
           </h1>
-          <p className="mt-4 max-w-2xl text-base sm:text-lg mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          <p
+            className="mt-4 max-w-2xl text-base sm:text-lg mx-auto"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Type in the input box below what your {selectedDuration}-day goal is
           </p>
         </div>
@@ -136,18 +165,22 @@ export default function GoalPage() {
               placeholder="Enter your goal here..."
               className="w-full px-6 py-4 text-lg rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition-all duration-300 ease-in-out transform group-hover:scale-[1.02] group-focus-within:scale-[1.02]"
               style={{
-                background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.08), rgba(0,0,0,0) 70%), var(--surface-card)',
-                color: 'var(--text-inverse)',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
+                background:
+                  "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.08), rgba(0,0,0,0) 70%), var(--surface-card)",
+                color: "var(--text-inverse)",
+                boxShadow:
+                  "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(10px)",
               }}
               aria-label="Goal input"
             />
             <div
               className="absolute inset-0 rounded-xl pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"
               style={{
-                background: 'linear-gradient(135deg, rgba(34,211,238,0.1), rgba(6,182,212,0.05))',
-                boxShadow: '0 0 0 1px rgba(34,211,238,0.3), 0 8px 25px -5px rgba(34,211,238,0.2)',
+                background:
+                  "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(6,182,212,0.05))",
+                boxShadow:
+                  "0 0 0 1px rgba(34,211,238,0.3), 0 8px 25px -5px rgba(34,211,238,0.2)",
               }}
             />
           </div>
@@ -161,7 +194,10 @@ export default function GoalPage() {
             {isValidating && (
               <div className="flex items-center justify-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
-                <span className="ml-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <span
+                  className="ml-2 text-sm"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   Analyzing your goal...
                 </span>
               </div>
@@ -170,28 +206,47 @@ export default function GoalPage() {
             {validation && !isValidating && (
               <div className="space-y-4">
                 {/* Validation Status */}
-                <div className={`p-4 rounded-lg border ${
-                  validation.isValid
-                    ? 'border-green-500/30 bg-green-500/10'
-                    : 'border-orange-500/30 bg-orange-500/10'
-                }`}>
+                <div
+                  className={`p-4 rounded-lg border ${
+                    validation.isValid
+                      ? "border-green-500/30 bg-green-500/10"
+                      : "border-orange-500/30 bg-orange-500/10"
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm font-medium ${
-                      validation.isValid ? 'text-green-400' : 'text-orange-400'
-                    }`}>
-                      {validation.isValid ? '✓ Goal looks good!' : '⚠ Goal needs refinement'}
+                    <span
+                      className={`text-sm font-medium ${
+                        validation.isValid
+                          ? "text-green-400"
+                          : "text-orange-400"
+                      }`}
+                    >
+                      {validation.isValid
+                        ? "✓ Goal looks good!"
+                        : "⚠ Goal needs refinement"}
                     </span>
-                    <span className="text-xs px-2 py-1 rounded-full" style={{
-                      backgroundColor: validation.isValid ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 146, 60, 0.2)',
-                      color: validation.isValid ? '#22c55e' : '#fb923c'
-                    }}>
+                    <span
+                      className="text-xs px-2 py-1 rounded-full"
+                      style={{
+                        backgroundColor: validation.isValid
+                          ? "rgba(34, 197, 94, 0.2)"
+                          : "rgba(251, 146, 60, 0.2)",
+                        color: validation.isValid ? "#22c55e" : "#fb923c",
+                      }}
+                    >
                       {validation.confidence}% confidence
                     </span>
                   </div>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {validation.feedback}
                   </p>
-                  <p className="text-xs mt-1 capitalize" style={{ color: 'var(--text-muted)' }}>
+                  <p
+                    className="text-xs mt-1 capitalize"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     Category: {validation.category}
                   </p>
                 </div>
@@ -200,19 +255,23 @@ export default function GoalPage() {
                 {validation.suggestions.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium" style={{ color: 'var(--text-inverse)' }}>
+                      <h3
+                        className="text-sm font-medium"
+                        style={{ color: "var(--text-inverse)" }}
+                      >
                         Suggestions to improve your goal:
                       </h3>
                       <button
                         onClick={() => setShowSuggestions(!showSuggestions)}
                         className="text-xs px-3 py-1 rounded-full transition-colors"
                         style={{
-                          backgroundColor: 'var(--surface-card)',
-                          color: 'var(--text-secondary)',
-                          border: '1px solid var(--border-subtle)'
+                          backgroundColor: "var(--surface-card)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border-subtle)",
                         }}
                       >
-                        {showSuggestions ? 'Hide' : 'Show'} ({validation.suggestions.length})
+                        {showSuggestions ? "Hide" : "Show"} (
+                        {validation.suggestions.length})
                       </button>
                     </div>
 
@@ -228,10 +287,10 @@ export default function GoalPage() {
                             }}
                             className="w-full text-left p-3 rounded-lg border transition-all hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
                             style={{
-                              backgroundColor: 'var(--surface-card)',
-                              borderColor: 'var(--border-subtle)',
-                              color: 'var(--text-inverse)',
-                              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
+                              backgroundColor: "var(--surface-card)",
+                              borderColor: "var(--border-subtle)",
+                              color: "var(--text-inverse)",
+                              boxShadow: "0 2px 4px -1px rgba(0, 0, 0, 0.1)",
                             }}
                           >
                             <span className="text-sm">{suggestion}</span>
@@ -251,18 +310,27 @@ export default function GoalPage() {
       <section className="mx-auto max-w-7xl px-6 py-8 text-center">
         <button
           onClick={handleContinue}
-          disabled={!goal.trim() || goal.trim().length < 5 || (validation !== null && !validation.isValid)}
+          disabled={
+            !goal.trim() ||
+            goal.trim().length < 5 ||
+            (validation !== null && !validation.isValid)
+          }
           className="inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            backgroundColor: 'var(--black)',
-            backgroundImage: 'var(--grad-cta), linear-gradient(var(--black), var(--black))',
-            backgroundRepeat: 'no-repeat, no-repeat',
-            backgroundSize: 'calc(100% - 12px) 1px, 100% 100%',
-            backgroundPosition: 'center 100%, 0 0',
-            border: 'none',
+            backgroundColor: "var(--black)",
+            backgroundImage:
+              "var(--grad-cta), linear-gradient(var(--black), var(--black))",
+            backgroundRepeat: "no-repeat, no-repeat",
+            backgroundSize: "calc(100% - 12px) 1px, 100% 100%",
+            backgroundPosition: "center 100%, 0 0",
+            border: "none",
           }}
         >
-        {!validation ? 'Analyze Goal' : validation.isValid ? 'Generate My Plan' : 'Improve Goal First'}
+          {!validation
+            ? "Analyze Goal"
+            : validation.isValid
+              ? "Generate My Plan"
+              : "Improve Goal First"}
         </button>
       </section>
     </main>

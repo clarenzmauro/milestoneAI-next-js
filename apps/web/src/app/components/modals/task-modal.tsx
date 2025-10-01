@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaCheck, FaTimes, FaRobot, FaUser } from 'react-icons/fa';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import type { DailyTask, FullPlan } from '../../types/planTypes';
-import { useQuery, useMutation, useAction } from 'convex/react';
-import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
-import { usePlan } from '../../contexts/PlanContext';
+import React, { useState, useEffect, useRef } from "react";
+import { FaCheck, FaTimes, FaRobot, FaUser } from "react-icons/fa";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { DailyTask, FullPlan } from "../../types/planTypes";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
+import { usePlan } from "../../contexts/plan-context";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -13,18 +13,29 @@ interface TaskModalProps {
   task: DailyTask | null;
   plan: FullPlan | null;
   onToggleComplete: (task: DailyTask) => void;
-  onSendMessage: (message: string, task: DailyTask, plan: FullPlan) => Promise<string>;
+  onSendMessage: (
+    message: string,
+    task: DailyTask,
+    plan: FullPlan
+  ) => Promise<string>;
 }
 
-export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplete, onSendMessage }: TaskModalProps) {
-  const [messageInput, setMessageInput] = useState('');
+export default function TaskModal({
+  isOpen,
+  onClose,
+  task,
+  plan,
+  onToggleComplete,
+  onSendMessage,
+}: TaskModalProps) {
+  const [messageInput, setMessageInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { currentPlanId } = usePlan();
 
   const messagesPage = useQuery(
     api.chat.listMessages,
-    currentPlanId ? { planId: currentPlanId } : 'skip'
+    currentPlanId ? { planId: currentPlanId } : "skip"
   );
   const messages = messagesPage?.page ?? [];
   const appendMessage = useMutation(api.chat.appendMessage);
@@ -34,12 +45,12 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
     if (!messageInput.trim() || !currentPlanId || isLoading) return;
 
     const userMessageContent = messageInput.trim();
-    setMessageInput(''); // Clear input immediately
+    setMessageInput(""); // Clear input immediately
 
     // 1. Persist user message
     await appendMessage({
       planId: currentPlanId,
-      role: 'user',
+      role: "user",
       content: userMessageContent,
     });
 
@@ -51,18 +62,18 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
       // 3. Persist assistant message
       await appendMessage({
         planId: currentPlanId,
-        role: 'assistant',
+        role: "assistant",
         content: response,
       });
       // Fire-and-forget recompute of insights
       recomputeInsights({ planId: currentPlanId }).catch(() => {});
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error("Failed to send message:", error);
       // Persist the error message from the assistant
       await appendMessage({
         planId: currentPlanId,
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -72,15 +83,18 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
   // Auto-scroll to bottom of chat
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
-
 
   if (!isOpen || !task) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[80vh] relative overflow-hidden rounded-2xl border border-[var(--accent-cyan)] bg-[var(--neutral-950)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -89,9 +103,13 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
         <div className="p-6 border-b border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${
-                task.completed ? 'bg-[var(--accent-cyan)]' : 'border-2 border-[var(--border-subtle)]'
-              }`} />
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  task.completed
+                    ? "bg-[var(--accent-cyan)]"
+                    : "border-2 border-[var(--border-subtle)]"
+                }`}
+              />
               <h2 className="text-xl font-semibold text-[var(--text-inverse)]">
                 Task Details
               </h2>
@@ -112,14 +130,21 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
           <div className="flex-shrink-0 p-6 border-b border-[var(--border-subtle)]">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1 min-w-0">
-                <p className={`text-base leading-relaxed break-words ${
-                  task.completed ? 'line-through text-[var(--text-secondary)]' : 'text-[var(--text-inverse)]'
-                }`}>
+                <p
+                  className={`text-base leading-relaxed break-words ${
+                    task.completed
+                      ? "line-through text-[var(--text-secondary)]"
+                      : "text-[var(--text-inverse)]"
+                  }`}
+                >
                   {task.description}
                 </p>
                 {plan && (
                   <p className="text-sm mt-2 text-[var(--text-secondary)]">
-                    Goal: {plan.goal.length > 60 ? `${plan.goal.substring(0, 60)}...` : plan.goal}
+                    Goal:{" "}
+                    {plan.goal.length > 60
+                      ? `${plan.goal.substring(0, 60)}...`
+                      : plan.goal}
                   </p>
                 )}
               </div>
@@ -127,12 +152,14 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                 onClick={() => onToggleComplete(task)}
                 className={`ml-4 flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
                   task.completed
-                    ? 'bg-[var(--accent-cyan)] border-[var(--accent-cyan)]'
-                    : 'border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]'
+                    ? "bg-[var(--accent-cyan)] border-[var(--accent-cyan)]"
+                    : "border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]"
                 }`}
-                title={task.completed ? 'Mark incomplete' : 'Mark complete'}
+                title={task.completed ? "Mark incomplete" : "Mark complete"}
               >
-                <FaCheck className={`text-sm ${task.completed ? 'text-white' : 'text-transparent'}`} />
+                <FaCheck
+                  className={`text-sm ${task.completed ? "text-white" : "text-transparent"}`}
+                />
               </button>
             </div>
           </div>
@@ -142,12 +169,17 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
             <div className="flex-shrink-0 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-deep)]">
               <div className="flex items-center space-x-2">
                 <FaRobot className="text-[var(--accent-cyan)] text-sm" />
-                <span className="text-sm font-medium text-[var(--text-inverse)]">AI Assistant</span>
+                <span className="text-sm font-medium text-[var(--text-inverse)]">
+                  AI Assistant
+                </span>
               </div>
             </div>
 
             {/* Chat Messages - Scrollable container */}
-            <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+            <div
+              ref={chatContainerRef}
+              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
+            >
               {messages.length === 0 && !isLoading ? (
                 <div className="text-center py-8">
                   <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
@@ -160,19 +192,19 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                   <div
                     key={message._id}
                     className={`flex items-start space-x-2 ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                      message.role === "user" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {message.role === 'assistant' && (
+                    {message.role === "assistant" && (
                       <div className="w-6 h-6 rounded-full bg-[var(--accent-cyan)] flex items-center justify-center flex-shrink-0 mt-0.5">
                         <FaRobot className="text-white text-xs" />
                       </div>
                     )}
                     <div
                       className={`max-w-[85%] p-3 text-sm leading-relaxed break-words ${
-                        message.role === 'user'
-                          ? 'bg-[var(--accent-cyan)] text-white rounded-t-2xl rounded-l-2xl rounded-br-md'
-                          : 'bg-[var(--bg-deep)] border border-[var(--border-subtle)] text-[var(--text-inverse)] rounded-t-2xl rounded-r-2xl rounded-bl-md'
+                        message.role === "user"
+                          ? "bg-[var(--accent-cyan)] text-white rounded-t-2xl rounded-l-2xl rounded-br-md"
+                          : "bg-[var(--bg-deep)] border border-[var(--border-subtle)] text-[var(--text-inverse)] rounded-t-2xl rounded-r-2xl rounded-bl-md"
                       }`}
                     >
                       {/* Markdown content */}
@@ -180,23 +212,57 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            p: ({ node, ...props }) => <p className="mb-2" {...props} />,
-                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                            li: ({ node, ...props }) => <li className="ml-1" {...props} />,
-                            a: ({ node, ...props }) => <a className="underline text-[var(--accent-cyan)]" target="_blank" rel="noreferrer" {...props} />,
-                            strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
-                            em: ({ node, ...props }) => <em className="italic" {...props} />,
-                            code: (props: any) => (
-                              props.inline ? (
-                                <code className="px-1 rounded bg-black/20" {...props} />
-                              ) : (
-                                <code className="block p-3 rounded bg-black/30 overflow-x-auto text-xs" {...props} />
-                              )
+                            p: ({ node, ...props }) => (
+                              <p className="mb-2" {...props} />
                             ),
+                            ul: ({ node, ...props }) => (
+                              <ul
+                                className="list-disc pl-5 mb-2 space-y-1"
+                                {...props}
+                              />
+                            ),
+                            ol: ({ node, ...props }) => (
+                              <ol
+                                className="list-decimal pl-5 mb-2 space-y-1"
+                                {...props}
+                              />
+                            ),
+                            li: ({ node, ...props }) => (
+                              <li className="ml-1" {...props} />
+                            ),
+                            a: ({ node, ...props }) => (
+                              <a
+                                className="underline text-[var(--accent-cyan)]"
+                                target="_blank"
+                                rel="noreferrer"
+                                {...props}
+                              />
+                            ),
+                            strong: ({ node, ...props }) => (
+                              <strong className="font-semibold" {...props} />
+                            ),
+                            em: ({ node, ...props }) => (
+                              <em className="italic" {...props} />
+                            ),
+                            code: (props: any) =>
+                              props.inline ? (
+                                <code
+                                  className="px-1 rounded bg-black/20"
+                                  {...props}
+                                />
+                              ) : (
+                                <code
+                                  className="block p-3 rounded bg-black/30 overflow-x-auto text-xs"
+                                  {...props}
+                                />
+                              ),
                             input: ({ node, ...props }) => (
                               // Task list checkboxes (from GFM)
-                              <input {...props} className="mr-2 align-middle" disabled />
+                              <input
+                                {...props}
+                                className="mr-2 align-middle"
+                                disabled
+                              />
                             ),
                           }}
                         >
@@ -207,7 +273,7 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                         {new Date(message._creationTime).toLocaleTimeString()}
                       </div>
                     </div>
-                    {message.role === 'user' && (
+                    {message.role === "user" && (
                       <div className="w-6 h-6 rounded-full bg-[var(--text-secondary)] flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-white text-xs font-bold">U</span>
                       </div>
@@ -240,11 +306,11 @@ export default function TaskModal({ isOpen, onClose, task, plan, onToggleComplet
                   onChange={(e) => {
                     setMessageInput(e.target.value);
                     const el = e.target as HTMLTextAreaElement;
-                    el.style.height = 'auto';
+                    el.style.height = "auto";
                     el.style.height = `${el.scrollHeight}px`;
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       handleSendMessage();
                     }

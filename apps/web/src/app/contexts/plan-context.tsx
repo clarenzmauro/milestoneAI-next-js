@@ -1,15 +1,15 @@
-import React, { createContext, useState, useContext } from 'react';
-import type { ReactNode } from 'react';
-import { generatePlan as apiGeneratePlan } from '../services/aiService';
-import type { FullPlan } from '../types/planTypes';
-import { parsePlanString } from '../utils/planParser';
-import { checkAndUnlockAchievements } from '../services/achievementService';
-import type { AchievementDefinition } from '../config/achievements';
-import { useUser } from '@clerk/nextjs';
-import { useMutation } from 'convex/react';
-import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
-import type { Id } from '@milestoneAI-next-js/backend/convex/_generated/dataModel';
-import { toast } from 'sonner';
+import React, { createContext, useState, useContext } from "react";
+import type { ReactNode } from "react";
+import { generatePlan as apiGeneratePlan } from "../services/ai-service";
+import type { FullPlan } from "../types/planTypes";
+import { parsePlanString } from "../utils/planParser";
+import { checkAndUnlockAchievements } from "../services/achievementService";
+import type { AchievementDefinition } from "../config/achievements";
+import { useUser } from "@clerk/nextjs";
+import { useMutation } from "convex/react";
+import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
+import type { Id } from "@milestoneAI-next-js/backend/convex/_generated/dataModel";
+import { toast } from "sonner";
 
 // 1. Define the shape of the context data
 export interface IPlanContext {
@@ -20,15 +20,25 @@ export interface IPlanContext {
   error: string | null;
   selectedDuration: number | null;
   goal: string | null;
-  currentPlanId: Id<'plans'> | null;
-  generateNewPlan: (goal: string, onChunk?: (chunk: string) => void) => Promise<void>;
-  setPlanFromString: (planString: string, originalGoal: string | undefined) => Promise<boolean>;
+  currentPlanId: Id<"plans"> | null;
+  generateNewPlan: (
+    goal: string,
+    onChunk?: (chunk: string) => void
+  ) => Promise<void>;
+  setPlanFromString: (
+    planString: string,
+    originalGoal: string | undefined
+  ) => Promise<boolean>;
   setPlan: (loadedPlan: FullPlan) => void;
   setSelectedDuration: (duration: number) => void;
   setGoal: (goal: string) => void;
-  setCurrentPlanId: (id: Id<'plans'> | null) => void;
+  setCurrentPlanId: (id: Id<"plans"> | null) => void;
   saveCurrentPlan: () => Promise<void>;
-  toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
+  toggleTaskCompletion: (
+    monthIndex: number,
+    weekIndex: number,
+    taskDay: number
+  ) => Promise<void>;
   resetPlanState: () => void;
 }
 
@@ -42,13 +52,19 @@ interface PlanProviderProps {
 
 export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [plan, setPlanState] = useState<FullPlan | null>(null);
-  const [streamingPlanText, setStreamingPlanText] = useState<string | null>(null);
+  const [streamingPlanText, setStreamingPlanText] = useState<string | null>(
+    null
+  );
   const [streamingPlan, setStreamingPlan] = useState<FullPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDuration, setSelectedDurationState] = useState<number | null>(null);
+  const [selectedDuration, setSelectedDurationState] = useState<number | null>(
+    null
+  );
   const [goal, setGoalState] = useState<string | null>(null);
-  const [currentPlanId, setCurrentPlanIdState] = useState<Id<'plans'> | null>(null);
+  const [currentPlanId, setCurrentPlanIdState] = useState<Id<"plans"> | null>(
+    null
+  );
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
 
@@ -109,100 +125,129 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
    * @sideEffects:
    * - Network calls to AI backend and Convex; mutates plan state
    */
-  const generateNewPlan = async (goal: string, onChunk?: (chunk: string) => void) => {
+  const generateNewPlan = async (
+    goal: string,
+    onChunk?: (chunk: string) => void
+  ) => {
     const trimmedGoal = goal.trim();
     if (!trimmedGoal) {
-      setError('Goal cannot be empty.');
+      setError("Goal cannot be empty.");
       return;
     }
     setIsLoading(true);
     setError(null);
     setPlanState(null);
-    setStreamingPlanText('');
+    setStreamingPlanText("");
 
     try {
-      let accumulatedText = '';
-      
-      const rawPlanString = await apiGeneratePlan(trimmedGoal, selectedDuration || undefined, (chunk: string) => {
-        accumulatedText += chunk;
-        setStreamingPlanText(accumulatedText);
+      let accumulatedText = "";
 
-        // Try to parse the streaming text incrementally for display
-        try {
-          const parsedStreamingPlan = parsePlanString(accumulatedText, trimmedGoal, selectedDuration || undefined, true);
-          if (parsedStreamingPlan) {
-            setStreamingPlan(parsedStreamingPlan);
+      const rawPlanString = await apiGeneratePlan(
+        trimmedGoal,
+        selectedDuration || undefined,
+        (chunk: string) => {
+          accumulatedText += chunk;
+          setStreamingPlanText(accumulatedText);
+
+          // Try to parse the streaming text incrementally for display
+          try {
+            const parsedStreamingPlan = parsePlanString(
+              accumulatedText,
+              trimmedGoal,
+              selectedDuration || undefined,
+              true
+            );
+            if (parsedStreamingPlan) {
+              setStreamingPlan(parsedStreamingPlan);
+            }
+          } catch (parseError) {
+            // Ignore parsing errors during streaming - they'll be resolved when complete
+            console.debug("Streaming parse failed:", parseError);
           }
-        } catch (parseError) {
-          // Ignore parsing errors during streaming - they'll be resolved when complete
-          console.debug('Streaming parse failed:', parseError);
-        }
 
-        // Also call the provided onChunk callback if it exists
-        if (onChunk) {
-          onChunk(chunk);
+          // Also call the provided onChunk callback if it exists
+          if (onChunk) {
+            onChunk(chunk);
+          }
         }
-      });
-      
+      );
+
       // Clear streaming text and plan once plan is fully generated
       setStreamingPlanText(null);
       setStreamingPlan(null);
-      
-      const parsedPlan = parsePlanString(rawPlanString, trimmedGoal, selectedDuration || undefined);
+
+      const parsedPlan = parsePlanString(
+        rawPlanString,
+        trimmedGoal,
+        selectedDuration || undefined
+      );
 
       if (parsedPlan) {
         // Validate task count matches expected duration
         let totalTasks = 0;
-        parsedPlan.monthlyMilestones.forEach(month => {
-          month.weeklyObjectives.forEach(week => {
+        parsedPlan.monthlyMilestones.forEach((month) => {
+          month.weeklyObjectives.forEach((week) => {
             totalTasks += week.dailyTasks.length;
           });
         });
 
         if (selectedDuration && totalTasks !== selectedDuration) {
-          console.warn(`Final validation: Task count mismatch: got ${totalTasks}, expected ${selectedDuration}`);
+          console.warn(
+            `Final validation: Task count mismatch: got ${totalTasks}, expected ${selectedDuration}`
+          );
           if (totalTasks < selectedDuration * 0.7) {
-            setError(`Plan generation incomplete. Expected ${selectedDuration} tasks but got only ${totalTasks} unique tasks. Please try again.`);
+            setError(
+              `Plan generation incomplete. Expected ${selectedDuration} tasks but got only ${totalTasks} unique tasks. Please try again.`
+            );
             setPlanState(null);
             return;
           }
-          console.log(`Proceeding with ${totalTasks} unique tasks out of ${selectedDuration} expected`);
+          console.log(
+            `Proceeding with ${totalTasks} unique tasks out of ${selectedDuration} expected`
+          );
         }
 
         // --- Check for initial achievements on plan generation ---
-        const { updatedPlan: planWithInitialAchievements } = checkAndUnlockAchievements(parsedPlan);
+        const { updatedPlan: planWithInitialAchievements } =
+          checkAndUnlockAchievements(parsedPlan);
         setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked
         // Note: We don't trigger toasts here, only on task completion later.
 
         // --- Auto-save if user is logged in ---
         if (user) {
           try {
-            const insertedId = await savePlanMutation({ userId: user.id, plan: planWithInitialAchievements });
-            if (insertedId) setCurrentPlanIdState(insertedId as Id<'plans'>);
+            const insertedId = await savePlanMutation({
+              userId: user.id,
+              plan: planWithInitialAchievements,
+            });
+            if (insertedId) setCurrentPlanIdState(insertedId as Id<"plans">);
           } catch (saveError) {
-            console.error('[PlanContext] Auto-save failed:', saveError);
+            console.error("[PlanContext] Auto-save failed:", saveError);
           }
         }
         // --- End auto-save ---
-
       } else {
-        console.error('Failed to parse the generated plan string. Raw string:', rawPlanString);
-        setError('AI generated a plan, but it could not be structured correctly.');
+        console.error(
+          "Failed to parse the generated plan string. Raw string:",
+          rawPlanString
+        );
+        setError(
+          "AI generated a plan, but it could not be structured correctly."
+        );
         setPlanState(null);
       }
-
     } catch (err) {
-      console.error('-----------------------------------------');
-      console.error('Caught error during plan generation:');
-      console.error('Error Object:', err);
+      console.error("-----------------------------------------");
+      console.error("Caught error during plan generation:");
+      console.error("Error Object:", err);
       if (err instanceof Error) {
-          console.error('Error Message:', err.message);
-          console.error('Error Stack:', err.stack);
-          setError(`Failed to generate plan: ${err.message}`);
+        console.error("Error Message:", err.message);
+        console.error("Error Stack:", err.stack);
+        setError(`Failed to generate plan: ${err.message}`);
       } else {
-          setError('Failed to generate plan due to an unknown error.');
+        setError("Failed to generate plan due to an unknown error.");
       }
-      console.error('-----------------------------------------');
+      console.error("-----------------------------------------");
       setPlanState(null);
     } finally {
       setIsLoading(false);
@@ -223,27 +268,38 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
    * @sideEffects:
    * - Mutates plan state; network call to Convex when user exists
    */
-  const setPlanFromString = async (planString: string, originalGoal: string | undefined): Promise<boolean> => {
+  const setPlanFromString = async (
+    planString: string,
+    originalGoal: string | undefined
+  ): Promise<boolean> => {
     setError(null);
     setIsLoading(true);
-    
+
     try {
-      const goalForParsing = plan?.goal || originalGoal || 'Updated Plan';
+      const goalForParsing = plan?.goal || originalGoal || "Updated Plan";
       const parsedPlan = parsePlanString(planString, goalForParsing);
 
       if (parsedPlan) {
         // --- Check for initial achievements on plan load from string ---
-        const { updatedPlan: planWithInitialAchievements } = checkAndUnlockAchievements(parsedPlan);
+        const { updatedPlan: planWithInitialAchievements } =
+          checkAndUnlockAchievements(parsedPlan);
         setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked
         // Note: We don't trigger toasts here.
 
         // --- Auto-save if user is logged in ---
         if (user) {
           try {
-            const insertedId = await savePlanMutation({ userId: user.id, plan: planWithInitialAchievements });
-            if (!currentPlanId && insertedId) setCurrentPlanIdState(insertedId as Id<'plans'>);
+            const insertedId = await savePlanMutation({
+              userId: user.id,
+              plan: planWithInitialAchievements,
+            });
+            if (!currentPlanId && insertedId)
+              setCurrentPlanIdState(insertedId as Id<"plans">);
           } catch (saveError) {
-            console.error('[PlanContext] Updated plan auto-save failed:', saveError);
+            console.error(
+              "[PlanContext] Updated plan auto-save failed:",
+              saveError
+            );
             // Log error, but don't interrupt user flow
           }
         }
@@ -252,16 +308,24 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         setIsLoading(false);
         return true;
       } else {
-        console.error('[PlanContext] Failed to parse the updated plan string. String:', planString);
-        setError('Received an AI response, but it could not be structured into an updated plan.');
+        console.error(
+          "[PlanContext] Failed to parse the updated plan string. String:",
+          planString
+        );
+        setError(
+          "Received an AI response, but it could not be structured into an updated plan."
+        );
         setIsLoading(false);
         return false;
       }
     } catch (parseError) {
-        console.error('[PlanContext] Error during plan string parsing:', parseError);
-        setError('An error occurred while trying to structure the updated plan.');
-        setIsLoading(false);
-        return false;
+      console.error(
+        "[PlanContext] Error during plan string parsing:",
+        parseError
+      );
+      setError("An error occurred while trying to structure the updated plan.");
+      setIsLoading(false);
+      return false;
     }
   };
 
@@ -280,7 +344,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
    */
   const setPlan = (loadedPlan: FullPlan) => {
     // Ensure achievements are checked on load, but don't trigger toasts
-    const { updatedPlan: planWithAchievements } = checkAndUnlockAchievements(loadedPlan);
+    const { updatedPlan: planWithAchievements } =
+      checkAndUnlockAchievements(loadedPlan);
     setPlanState(planWithAchievements);
     setError(null); // Clear any previous errors when setting a new plan
     setIsLoading(false); // Ensure loading is false
@@ -301,7 +366,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
    */
   const saveCurrentPlan = async () => {
     if (!user) {
-      setError('You must be logged in to save.');
+      setError("You must be logged in to save.");
       return;
     }
     if (!plan) {
@@ -310,10 +375,14 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
     try {
       const insertedId = await savePlanMutation({ userId: user.id, plan });
-      if (!currentPlanId && insertedId) setCurrentPlanIdState(insertedId as Id<'plans'>);
+      if (!currentPlanId && insertedId)
+        setCurrentPlanIdState(insertedId as Id<"plans">);
     } catch (saveError) {
-      console.error('[PlanContext] Failed to save current plan state:', saveError);
-      setError('Failed to save the current plan progress.'); // Set an error for the user
+      console.error(
+        "[PlanContext] Failed to save current plan state:",
+        saveError
+      );
+      setError("Failed to save the current plan progress."); // Set an error for the user
     }
   };
 
@@ -331,7 +400,11 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
    * @sideEffects:
    * - Mutates plan state; network call to Convex
    */
-  const toggleTaskCompletion = async (monthIndex: number, weekIndex: number, taskDay: number) => {
+  const toggleTaskCompletion = async (
+    monthIndex: number,
+    weekIndex: number,
+    taskDay: number
+  ) => {
     if (!plan) return; // No plan loaded
 
     const originalPlanState = plan; // Keep a reference to revert if save fails
@@ -341,8 +414,14 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     // --- 1. Optimistic UI Update & Achievement Check ---
     try {
       // Create a deep copy for local modification
-      const tempUpdatedPlan = JSON.parse(JSON.stringify(originalPlanState)) as FullPlan;
-      const task = tempUpdatedPlan.monthlyMilestones?.[monthIndex]?.weeklyObjectives?.[weekIndex]?.dailyTasks?.find(t => t.day === taskDay);
+      const tempUpdatedPlan = JSON.parse(
+        JSON.stringify(originalPlanState)
+      ) as FullPlan;
+      const task = tempUpdatedPlan.monthlyMilestones?.[
+        monthIndex
+      ]?.weeklyObjectives?.[weekIndex]?.dailyTasks?.find(
+        (t) => t.day === taskDay
+      );
 
       if (task) {
         task.completed = !task.completed; // Toggle status
@@ -360,41 +439,48 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         setPlanState(planAfterToggle); // Update local state immediately
 
         // Trigger toasts *after* state update
-        newlyUnlockedAchievements.forEach(ach => {
-           toast.success(`Achievement Unlocked: ${ach.name}!`, {
-             icon: '🏆', // Example: Use an emoji icon
-             duration: 4000, // Show for 4 seconds
-           });
+        newlyUnlockedAchievements.forEach((ach) => {
+          toast.success(`Achievement Unlocked: ${ach.name}!`, {
+            icon: "🏆", // Example: Use an emoji icon
+            duration: 4000, // Show for 4 seconds
+          });
         });
-
       } else {
-        console.error(`[PlanContext] Task not found for toggling: Month ${monthIndex + 1}, Week ${weekIndex + 1}, Day ${taskDay}`);
+        console.error(
+          `[PlanContext] Task not found for toggling: Month ${monthIndex + 1}, Week ${weekIndex + 1}, Day ${taskDay}`
+        );
         return; // Exit if task not found
       }
     } catch (error) {
       // Error during local update/check (e.g., JSON parsing)
-      console.error('[PlanContext] Error during local task toggle/achievement check:', error);
-      setError('An internal error occurred while updating the task.');
+      console.error(
+        "[PlanContext] Error during local task toggle/achievement check:",
+        error
+      );
+      setError("An internal error occurred while updating the task.");
       setPlanState(originalPlanState); // Revert to original state
       return; // Exit if local update failed
     }
 
-
     // --- 2. Persist Change ---
-    if (user && planAfterToggle) { // Ensure planAfterToggle is not null
+    if (user && planAfterToggle) {
+      // Ensure planAfterToggle is not null
       try {
-          await savePlanMutation({ userId: user.id, plan: planAfterToggle });
-          // Save successful, optimistic update is now confirmed
+        await savePlanMutation({ userId: user.id, plan: planAfterToggle });
+        // Save successful, optimistic update is now confirmed
       } catch (saveError) {
-          console.error('[PlanContext] Save after task toggle failed:', saveError);
-          setError('Failed to save task update. Reverting change.');
-          toast.error('Failed to save task update.');
-          // Revert optimistic UI update on save failure
-          setPlanState(originalPlanState); // Revert to the state before the toggle
+        console.error(
+          "[PlanContext] Save after task toggle failed:",
+          saveError
+        );
+        setError("Failed to save task update. Reverting change.");
+        toast.error("Failed to save task update.");
+        // Revert optimistic UI update on save failure
+        setPlanState(originalPlanState); // Revert to the state before the toggle
       }
     } else if (!user) {
-        // Optional: Give feedback that progress isn't saved?
-        // toast.info('Log in to save your progress.');
+      // Optional: Give feedback that progress isn't saved?
+      // toast.info('Log in to save your progress.');
     }
   };
 
@@ -420,9 +506,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   };
 
   return (
-    <PlanContext.Provider value={contextValue}>
-      {children}
-    </PlanContext.Provider>
+    <PlanContext.Provider value={contextValue}>{children}</PlanContext.Provider>
   );
 };
 
@@ -430,7 +514,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 export const usePlan = (): IPlanContext => {
   const context = useContext(PlanContext);
   if (context === undefined) {
-    throw new Error('usePlan must be used within a PlanProvider');
+    throw new Error("usePlan must be used within a PlanProvider");
   }
   return context;
 };

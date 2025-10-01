@@ -1,7 +1,12 @@
-import React from 'react';
-import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../../types/planTypes';
-import { usePlan } from '../../contexts/PlanContext';
-import { FaCheck, FaClock, FaCalendarAlt } from 'react-icons/fa';
+import React from "react";
+import type {
+  FullPlan,
+  MonthlyMilestone,
+  WeeklyObjective,
+  DailyTask,
+} from "../../types/planTypes";
+import { usePlan } from "../../contexts/plan-context";
+import { FaCheck, FaClock, FaCalendarAlt } from "react-icons/fa";
 
 interface CalendarProps {
   plan?: FullPlan | null;
@@ -24,7 +29,11 @@ interface CalendarProps {
  * @sideEffects:
  * - Updates task completion state through context
  */
-const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingPlan }) => {
+const PlanTimeline: React.FC<CalendarProps> = ({
+  plan,
+  streamingText,
+  streamingPlan,
+}) => {
   const { toggleTaskCompletion } = usePlan();
   const [currentDate] = React.useState(new Date());
 
@@ -39,8 +48,8 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
     let totalDays = 0;
 
     // Calculate total days in the plan
-    displayPlan.monthlyMilestones?.forEach(month => {
-      month.weeklyObjectives?.forEach(week => {
+    displayPlan.monthlyMilestones?.forEach((month) => {
+      month.weeklyObjectives?.forEach((week) => {
         totalDays += week.dailyTasks?.length || 0;
       });
     });
@@ -53,19 +62,25 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
     return { startDate, endDate, totalDays: planDays };
   }, [displayPlan]);
 
-
-
   const handleTaskToggle = async (task: DailyTask) => {
     // Find the task in the plan structure to get the correct indices
     if (!displayPlan?.monthlyMilestones) return;
 
-    for (let monthIdx = 0; monthIdx < displayPlan.monthlyMilestones.length; monthIdx++) {
+    for (
+      let monthIdx = 0;
+      monthIdx < displayPlan.monthlyMilestones.length;
+      monthIdx++
+    ) {
       const month = displayPlan.monthlyMilestones[monthIdx];
       if (month.weeklyObjectives) {
-        for (let weekIdx = 0; weekIdx < month.weeklyObjectives.length; weekIdx++) {
+        for (
+          let weekIdx = 0;
+          weekIdx < month.weeklyObjectives.length;
+          weekIdx++
+        ) {
           const week = month.weeklyObjectives[weekIdx];
           if (week.dailyTasks) {
-            const taskIdx = week.dailyTasks.findIndex(t => t === task);
+            const taskIdx = week.dailyTasks.findIndex((t) => t === task);
             if (taskIdx !== -1) {
               await toggleTaskCompletion(monthIdx, weekIdx, task.day);
               return;
@@ -79,15 +94,22 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
   // Show streaming text if available (during plan generation)
   if (streamingText) {
     return (
-      <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
-        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
-        borderColor: 'var(--border-subtle)',
-      }}>
+      <article
+        className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none"
+        style={{
+          background:
+            "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)",
+          borderColor: "var(--border-subtle)",
+        }}
+      >
         <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)]" />
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+              <h2
+                className="text-lg font-semibold"
+                style={{ color: "var(--text-inverse)" }}
+              >
                 Live Plan Generation
               </h2>
             </div>
@@ -95,10 +117,12 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
               <div className="animate-pulse">
                 <div className="w-2 h-2 bg-[var(--accent-cyan)] rounded-full"></div>
               </div>
-              <span className="text-xs text-[var(--accent-cyan)] font-medium">Streaming</span>
+              <span className="text-xs text-[var(--accent-cyan)] font-medium">
+                Streaming
+              </span>
             </div>
           </div>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
             Gemini AI is creating your personalized milestone plan in real-time
           </p>
         </div>
@@ -112,7 +136,9 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-transparent border-t-[var(--accent-cyan)] absolute top-0"></div>
               </div>
               <div>
-                <h3 className="font-medium text-[var(--text-inverse)]">AI Plan Generation</h3>
+                <h3 className="font-medium text-[var(--text-inverse)]">
+                  AI Plan Generation
+                </h3>
                 <p className="text-xs text-[var(--text-muted)]">
                   Processing with Gemini 2.5 Flash
                 </p>
@@ -132,8 +158,12 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-sm font-medium text-[var(--text-inverse)]">Gemini AI</span>
-                    <span className="text-xs text-[var(--text-muted)]">Generating milestone plan...</span>
+                    <span className="text-sm font-medium text-[var(--text-inverse)]">
+                      Gemini AI
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      Generating milestone plan...
+                    </span>
                   </div>
                   <div className="prose prose-sm max-w-none">
                     <pre className="text-sm leading-6 whitespace-pre-wrap font-mono text-[var(--text-inverse)] bg-transparent border-0 p-0 m-0">
@@ -151,8 +181,14 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                   <span>Building your milestone roadmap...</span>
                   <div className="flex space-x-1">
                     <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"></div>
-                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div
+                      className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"
+                      style={{ animationDelay: "0.1s" }}
+                    ></div>
+                    <div
+                      className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -166,34 +202,48 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
   // Show error if no plan provided
   if (!displayPlan) {
     return (
-      <article className="group relative overflow-hidden rounded-lg border p-6 text-center transition-shadow motion-reduce:transition-none" style={{
-        background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
-        borderColor: 'var(--border-subtle)',
-      }}>
-          <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)] text-4xl mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-inverse)' }}>
-            No Plan Available
-          </h3>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Start by creating your first milestone plan.
-          </p>
-        </article>
+      <article
+        className="group relative overflow-hidden rounded-lg border p-6 text-center transition-shadow motion-reduce:transition-none"
+        style={{
+          background:
+            "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)",
+          borderColor: "var(--border-subtle)",
+        }}
+      >
+        <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)] text-4xl mx-auto mb-4" />
+        <h3
+          className="text-lg font-semibold mb-2"
+          style={{ color: "var(--text-inverse)" }}
+        >
+          No Plan Available
+        </h3>
+        <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
+          Start by creating your first milestone plan.
+        </p>
+      </article>
     );
   }
 
   return (
-    <article className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none" style={{
-      background: 'radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)',
-      borderColor: 'var(--border-subtle)',
-    }}>
+    <article
+      className="group relative overflow-hidden rounded-lg border transition-shadow motion-reduce:transition-none"
+      style={{
+        background:
+          "radial-gradient(360px 200px at 50% 0%, rgba(34,211,238,0.22), rgba(0,0,0,0) 70%), var(--surface-card)",
+        borderColor: "var(--border-subtle)",
+      }}
+    >
       <div className="p-6 border-b border-[var(--border-color,#E5E9ED)]">
         <div className="flex items-center space-x-2">
           <FaCalendarAlt className="text-[var(--accent-cyan,#22D3EE)]" />
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--text-inverse)" }}
+          >
             Plan Timeline
           </h2>
         </div>
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
           Track your milestones, objectives, and daily tasks
         </p>
       </div>
@@ -208,10 +258,16 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                   {month.month}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold" style={{ color: 'var(--text-inverse)' }}>
+                  <h3
+                    className="text-lg font-semibold"
+                    style={{ color: "var(--text-inverse)" }}
+                  >
                     Month {month.month}
                   </h3>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <p
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {month.milestone}
                   </p>
                 </div>
@@ -226,7 +282,10 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                   <div className="w-6 h-6 rounded-full bg-[var(--accent-teal,#14B8A6)] flex items-center justify-center text-white text-xs font-bold">
                     {week.week}
                   </div>
-                  <h4 className="text-base font-medium" style={{ color: 'var(--text-inverse)' }}>
+                  <h4
+                    className="text-base font-medium"
+                    style={{ color: "var(--text-inverse)" }}
+                  >
                     Week {week.week}: {week.objective}
                   </h4>
                 </div>
@@ -242,10 +301,10 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                         onClick={() => handleTaskToggle(task)}
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
                           task.completed
-                            ? 'bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]'
-                            : 'border-[var(--border-subtle)] hover:border-[var(--accent-cyan,#22D3EE)]'
+                            ? "bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]"
+                            : "border-[var(--border-subtle)] hover:border-[var(--accent-cyan,#22D3EE)]"
                         }`}
-                        aria-label={`Mark task "${task.description}" as ${task.completed ? 'incomplete' : 'complete'}`}
+                        aria-label={`Mark task "${task.description}" as ${task.completed ? "incomplete" : "complete"}`}
                       >
                         {task.completed && (
                           <FaCheck className="text-white text-xs" />
@@ -263,11 +322,13 @@ const PlanTimeline: React.FC<CalendarProps> = ({ plan, streamingText, streamingP
                             </span>
                           )}
                         </div>
-                        <p className={`text-sm leading-relaxed ${
-                          task.completed
-                            ? 'line-through text-[var(--text-secondary)]'
-                            : 'text-[var(--text-inverse)]'
-                        }`}>
+                        <p
+                          className={`text-sm leading-relaxed ${
+                            task.completed
+                              ? "line-through text-[var(--text-secondary)]"
+                              : "text-[var(--text-inverse)]"
+                          }`}
+                        >
                           {task.description}
                         </p>
                       </div>
