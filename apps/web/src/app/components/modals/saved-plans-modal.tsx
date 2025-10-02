@@ -3,7 +3,7 @@ import { FaTimes, FaCalendarAlt, FaPlay, FaTrash } from "react-icons/fa";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import type { FullPlan } from "../../types/planTypes";
+import type { FullPlan } from "../../types/plan-types";
 
 interface SavedPlansModalProps {
   isOpen: boolean;

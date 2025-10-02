@@ -1,4 +1,4 @@
-import type { TimelineOption } from '../types/planningTypes';
+import type { TimelineOption } from '../types/planning-types';
 import quickSprintImg from '../public/quick-sprint.png';
 import focusedMonthImg from '../public/focused-month.png';
 import quarterlyPlanImg from '../public/quarterly-plan.png';

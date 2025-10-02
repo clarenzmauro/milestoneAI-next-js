@@ -1,5 +1,5 @@
-import type { ChatMessage } from './chatTypes';      
-import type { InteractionMode } from './generalTypes'; 
+import type { ChatMessage } from './chat-types';      
+import type { InteractionMode } from './general-types'; 
 
 // Defines the structure for the AI-generated 90-day plan
 

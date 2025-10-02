@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useCallback, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import { generatePlan as apiGeneratePlan } from "../services/ai-service";
-import type { FullPlan } from "../types/planTypes";
+import type { FullPlan } from "../types/plan-types";
 import { parsePlanString } from "../utils/plan-parser";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useAction } from "convex/react";

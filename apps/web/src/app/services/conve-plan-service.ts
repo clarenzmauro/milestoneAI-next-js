@@ -1,7 +1,7 @@
 // src/app/services/convexPlanService.ts
 import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
 import type { Id } from '@milestoneAI-next-js/backend/convex/_generated/dataModel';
-import type { FullPlan } from '../types/planTypes';
+import type { FullPlan } from '../types/plan-types';
 import { ConvexReactClient } from 'convex/react';
 
 /**

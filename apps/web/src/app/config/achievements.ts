@@ -1,4 +1,4 @@
-import type { FullPlan, MonthlyMilestone, WeeklyObjective } from '../types/planTypes';
+import type { FullPlan, MonthlyMilestone, WeeklyObjective } from '../types/plan-types';
 
 // --- Helper Functions ---
 

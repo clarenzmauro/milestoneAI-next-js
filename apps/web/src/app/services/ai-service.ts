@@ -1,4 +1,4 @@
-import type { FullPlan } from '../types/planTypes';
+import type { FullPlan } from '../types/plan-types';
 
 // Use Next.js API routes under /api
 const BACKEND_URL = '/api';

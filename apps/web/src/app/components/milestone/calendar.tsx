@@ -4,7 +4,7 @@ import type {
   MonthlyMilestone,
   WeeklyObjective,
   DailyTask,
-} from "../../types/planTypes";
+} from "../../types/plan-types";
 import { usePlan } from "../../contexts/plan-context";
 import { chatWithAI } from "../../services/ai-service";
 import { FaCheck, FaCalendarAlt } from "react-icons/fa";

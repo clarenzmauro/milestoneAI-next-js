@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FaCheck, FaTimes, FaRobot, FaUser } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { DailyTask, FullPlan } from "../../types/planTypes";
+import type { DailyTask, FullPlan } from "../../types/plan-types";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
 import { usePlan } from "../../contexts/plan-context";

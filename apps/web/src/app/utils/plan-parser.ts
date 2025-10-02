@@ -1,4 +1,4 @@
-import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../types/planTypes';
+import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../types/plan-types';
 
 // Simple LRU cache for plan parsing to avoid expensive re-parsing
 const PLAN_CACHE = new Map<string, FullPlan>();

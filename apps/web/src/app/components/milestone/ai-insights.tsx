@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FullPlan } from '../../types/planTypes';
+import type { FullPlan } from '../../types/plan-types';
 import { FaLightbulb } from 'react-icons/fa';
 import { useQuery } from 'convex/react';
 import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
