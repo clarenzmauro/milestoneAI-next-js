@@ -8,7 +8,7 @@ import BackgroundGradients from "../BackgroundGradients";
 import { timelineOptions } from "../../config/timeline-options";
 import { useQuery } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
-import { useUser } from "@clerk/nextjs";
+import { useUser, UserButton } from "@clerk/nextjs";
 
 const getCardStyles = (isSelected: boolean) => ({
   background: isSelected
@@ -98,23 +98,35 @@ export default function PlanningPage() {
           >
             MilestoneAI
           </div>
-          {hasExistingPlans && (
-            <button
-              onClick={() => setIsPlansModalOpen(true)}
-              className="inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none"
-              style={{
-                backgroundColor: 'var(--black)',
-                backgroundImage: 'var(--grad-cta), linear-gradient(var(--black), var(--black))',
-                backgroundRepeat: 'no-repeat, no-repeat',
-                backgroundSize: 'calc(100% - 12px) 1px, 100% 100%',
-                backgroundPosition: 'center 100%, 0 0',
-                border: 'none',
+
+          <div className="flex items-center space-x-4">
+            {hasExistingPlans && (
+              <button
+                onClick={() => setIsPlansModalOpen(true)}
+                className="inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none"
+                style={{
+                  backgroundColor: 'var(--black)',
+                  backgroundImage: 'var(--grad-cta), linear-gradient(var(--black), var(--black))',
+                  backgroundRepeat: 'no-repeat, no-repeat',
+                  backgroundSize: 'calc(100% - 12px) 1px, 100% 100%',
+                  backgroundPosition: 'center 100%, 0 0',
+                  border: 'none',
+                }}
+                title="View your saved plans"
+              >
+                View Your Plans
+              </button>
+            )}
+
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8",
+                },
               }}
-              title="View your saved plans"
-            >
-              View Your Plans
-            </button>
-          )}
+            />
+          </div>
         </nav>
       </header>
 
