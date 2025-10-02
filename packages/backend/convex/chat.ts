@@ -79,3 +79,28 @@ export const listMessages = query({
       .paginate({ numItems: limit, cursor });
   },
 });
+
+export const listMessagesForPlan = query({
+  args: {
+    planId: v.id("plans"),
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.any())
+  },
+  handler: async (ctx, { planId, limit = 100, cursor }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // Check plan ownership
+    const plan = await ctx.db.get(planId);
+    if (!plan || plan.userId !== identity.subject) {
+      return { page: [], continueCursor: null, isDone: true };
+    }
+
+    return await ctx.db
+      .query("chatMessages")
+      .withIndex("by_user_created", (q) => q.eq("userId", identity.subject))
+      .filter((q) => q.eq(q.field("planId"), planId))
+      .order("desc")
+      .paginate({ numItems: limit, cursor });
+  },
+});

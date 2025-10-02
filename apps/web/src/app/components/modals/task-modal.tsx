@@ -81,7 +81,8 @@ export default function TaskModal({
         content: response,
       });
       // Fire-and-forget recompute of insights
-      recomputeInsights({ planId: currentPlanId }).catch(() => {});
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      recomputeInsights({ planId: currentPlanId, userTimezone }).catch(() => {});
     } catch (error) {
       console.error("Failed to send message:", error);
       // Persist the error message from the assistant

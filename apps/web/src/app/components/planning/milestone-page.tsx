@@ -32,6 +32,7 @@ export default function MilestonePage() {
     streamingPlan,
     resetPlanState,
     selectedDuration,
+    currentPlanId,
   } = usePlan();
   const router = useRouter();
 
@@ -156,7 +157,7 @@ export default function MilestonePage() {
                   <div className="h-32 bg-white/10 rounded"></div>
                 </div>
               }>
-                <AIInsights plan={plan || undefined} />
+                <AIInsights plan={plan || undefined} planId={currentPlanId || undefined} />
               </Suspense>
               <QuickNotes />
             </div>

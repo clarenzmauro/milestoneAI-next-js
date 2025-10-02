@@ -4,7 +4,7 @@ import { generatePlan as apiGeneratePlan } from "../services/ai-service";
 import type { FullPlan } from "../types/planTypes";
 import { parsePlanString } from "../utils/planParser";
 import { useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
 import type { Id } from "@milestoneAI-next-js/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -62,6 +62,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   );
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
+  const generateInsights = useAction(api.insights.recomputeInsightsForPlan);
 
   const setGoal = (newGoal: string) => {
     setGoalState(newGoal);
@@ -162,7 +163,23 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
               userId: user.id,
               plan: parsedPlan,
             });
-            if (insertedId) setCurrentPlanIdState(insertedId as Id<"plans">);
+            if (insertedId) {
+              setCurrentPlanIdState(insertedId as Id<"plans">);
+              // Automatically generate insights for the new plan
+              // Add a small delay to ensure plan is fully committed
+              setTimeout(async () => {
+                try {
+                  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                  await generateInsights({
+                    planId: insertedId as Id<"plans">,
+                    userTimezone
+                  });
+                } catch (insightsError) {
+                  console.error("[PlanContext] Auto-insights generation failed:", insightsError);
+                  // Don't show error to user - insights are optional enhancement
+                }
+              }, 100); // 100ms delay
+            }
           } catch (saveError) {
             console.error("[PlanContext] Auto-save failed:", saveError);
           }
@@ -318,6 +335,19 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     if (user && planAfterToggle) {
       try {
         await savePlanMutation({ userId: user.id, plan: planAfterToggle });
+        // Regenerate insights after task completion to provide updated guidance
+        setTimeout(async () => {
+          try {
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            await generateInsights({
+              planId: currentPlanId!,
+              userTimezone
+            });
+          } catch (insightsError) {
+            console.error("[PlanContext] Insights regeneration failed:", insightsError);
+            // Don't show error - insights are optional enhancement
+          }
+        }, 100); // 100ms delay
       } catch (saveError) {
         console.error(
           "[PlanContext] Save after task toggle failed:",
