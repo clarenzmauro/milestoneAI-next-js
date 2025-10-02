@@ -31,7 +31,7 @@ const QuickNotes: React.FC = () => {
 
   const handleAddNote = async () => {
     if (!newNoteTitle.trim() && !newNoteContent.trim()) return;
-    const text = [newNoteTitle.trim(), newNoteContent.trim()].filter(Boolean).join('\n\n');
+    const text = [newNoteTitle.trim(), newNoteContent.trim()].filter(Boolean).join('\n');
     await addNote({ text, pinned: false });
     setNewNoteTitle('');
     setNewNoteContent('');
@@ -49,7 +49,7 @@ const QuickNotes: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingNoteId) return;
     if (!editTitle.trim() && !editContent.trim()) return;
-    const text = [editTitle.trim(), editContent.trim()].filter(Boolean).join('\n\n');
+    const text = [editTitle.trim(), editContent.trim()].filter(Boolean).join('\n');
     await updateNote({ noteId: editingNoteId, patch: { text } });
     setEditingNoteId(null);
     setEditTitle('');

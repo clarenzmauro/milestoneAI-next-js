@@ -63,7 +63,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ plan, planId }) => {
           </h2>
         </div>
         <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-          Server-generated insights based on your plan and recent activity
+          AI insights based on your plan and recent activity
         </p>
       </div>
 
