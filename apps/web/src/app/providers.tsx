@@ -31,6 +31,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     if (!finalUrl) {
       throw new Error("NEXT_PUBLIC_CONVEX_URL must be set in production");
     }
+
     return new ConvexReactClient(finalUrl);
   }, []);
 

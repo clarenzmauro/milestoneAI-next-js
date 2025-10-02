@@ -55,6 +55,7 @@ export const savePlan = mutation({
   handler: async (ctx, { plan }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
+
     const now = Date.now();
     const id = await ctx.db.insert("plans", {
       userId: identity.subject,

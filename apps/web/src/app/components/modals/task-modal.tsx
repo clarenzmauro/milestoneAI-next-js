@@ -33,16 +33,18 @@ export default function TaskModal({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { currentPlanId } = usePlan();
 
+
   const messagesPage = useQuery(
     api.chat.listMessages,
     currentPlanId ? { planId: currentPlanId } : "skip"
   );
   const messages = messagesPage?.page ?? [];
+  const hasChatError = !messagesPage && currentPlanId !== null; // Error if we have a planId but no messagesPage
   const appendMessage = useMutation(api.chat.appendMessage);
   const recomputeInsights = useAction(api.insights.recomputeInsightsForPlan);
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !currentPlanId || isLoading) return;
+    if (!messageInput.trim() || currentPlanId === null || isLoading) return;
 
     const userMessageContent = messageInput.trim();
     setMessageInput(""); // Clear input immediately
@@ -180,7 +182,14 @@ export default function TaskModal({
               ref={chatContainerRef}
               className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
             >
-              {messages.length === 0 && !isLoading ? (
+              {hasChatError ? (
+                <div className="text-center py-8">
+                  <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Chat temporarily unavailable. Please refresh the page.
+                  </p>
+                </div>
+              ) : messages.length === 0 && !isLoading ? (
                 <div className="text-center py-8">
                   <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
                   <p className="text-sm text-[var(--text-secondary)]">
@@ -315,14 +324,14 @@ export default function TaskModal({
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Ask about this task..."
+                  placeholder={hasChatError ? "Chat unavailable for this plan" : "Ask about this task..."}
                   aria-label="Chat input"
                   className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--neutral-950)] text-[var(--text-inverse)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-cyan)] focus:outline-none text-sm resize-none max-h-40"
-                  disabled={isLoading || !currentPlanId}
+                  disabled={isLoading || currentPlanId === null || hasChatError}
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || isLoading || !currentPlanId}
+                  disabled={!messageInput.trim() || isLoading || currentPlanId === null || hasChatError}
                   aria-label="Send message"
                   className="px-3 py-2 bg-[var(--accent-cyan)] text-white rounded-lg font-medium hover:bg-opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
