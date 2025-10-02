@@ -62,6 +62,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   );
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
+  const updatePlanMutation = useMutation(api.plans.updatePlan);
   const generateInsights = useAction(api.insights.recomputeInsightsForPlan);
 
   const setGoal = (newGoal: string) => {
@@ -333,9 +334,9 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       return;
     }
 
-    if (user && planAfterToggle) {
+    if (user && planAfterToggle && currentPlanId) {
       try {
-        await savePlanMutation({ userId: user.id, plan: planAfterToggle });
+        await updatePlanMutation({ id: currentPlanId, patch: planAfterToggle });
         // Regenerate insights after task completion to provide updated guidance
         setTimeout(async () => {
           try {
@@ -349,13 +350,13 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
             // Don't show error - insights are optional enhancement
           }
         }, 100); // 100ms delay
-      } catch (saveError) {
+      } catch (updateError) {
         console.error(
-          "[PlanContext] Save after task toggle failed:",
-          saveError
+          "[PlanContext] Update after task toggle failed:",
+          updateError
         );
-        setError("Failed to save task update. Reverting change.");
-        toast.error("Failed to save task update.");
+        setError("Failed to update task status. Reverting change.");
+        toast.error("Failed to update task status.");
         setPlanState(originalPlanState);
       }
     }
