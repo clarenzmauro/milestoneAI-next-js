@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePlan } from '../../contexts/plan-context';
 
 interface CustomDurationModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ const UNIT_MULTIPLIERS = { days: 1, weeks: 7, months: 30 } as const;
 export default function CustomDurationModal({ isOpen, onClose, onConfirm }: CustomDurationModalProps) {
   const [value, setValue] = useState<number>(1);
   const [unit, setUnit] = useState<'days' | 'weeks' | 'months'>('weeks');
+  const { setSelectedDuration } = usePlan();
 
   const totalDays = value * UNIT_MULTIPLIERS[unit];
   const isValid = totalDays <= MAX_DAYS;
@@ -27,6 +29,7 @@ export default function CustomDurationModal({ isOpen, onClose, onConfirm }: Cust
 
   const handleConfirm = () => {
     if (isValid) {
+      setSelectedDuration(totalDays);
       onConfirm(totalDays);
       onClose();
     }
