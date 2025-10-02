@@ -167,7 +167,14 @@ const Calendar: React.FC<CalendarProps> = ({
 
     // Convert to months array
     Object.keys(daysByMonth)
-      .sort()
+      .sort((a, b) => {
+        // Parse year and month from keys like "2025-9"
+        const [yearA, monthA] = a.split('-').map(Number);
+        const [yearB, monthB] = b.split('-').map(Number);
+        // Sort by year first, then by month
+        if (yearA !== yearB) return yearA - yearB;
+        return monthA - monthB;
+      })
       .forEach((monthKey) => {
         const days = daysByMonth[monthKey];
         const firstDay = days[0];
