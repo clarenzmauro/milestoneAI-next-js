@@ -1,14 +1,16 @@
 "use client";
-import React, { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import Image from "next/image";
 import { usePlan } from "../../contexts/plan-context";
-import CustomDurationModal from "../modals/custom-duration-modal";
-import SavedPlansModal from "../modals/saved-plans-modal";
-import BackgroundGradients from "../BackgroundGradients";
+import BackgroundGradients from "../background-gradients";
 import { timelineOptions } from "../../config/timeline-options";
 import { useQuery } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
 import { useUser, UserButton } from "@clerk/nextjs";
+
+// Lazy load modal components
+const CustomDurationModal = lazy(() => import("../modals/custom-duration-modal"));
+const SavedPlansModal = lazy(() => import("../modals/saved-plans-modal"));
 
 const getCardStyles = (isSelected: boolean) => ({
   background: isSelected
@@ -211,17 +213,21 @@ export default function PlanningPage() {
         </button>
       </section>
 
-      <CustomDurationModal
-        isOpen={isCustomModalOpen}
-        onClose={() => setIsCustomModalOpen(false)}
-        onConfirm={handleCustomDurationConfirm}
-      />
+      <Suspense fallback={null}>
+        <CustomDurationModal
+          isOpen={isCustomModalOpen}
+          onClose={() => setIsCustomModalOpen(false)}
+          onConfirm={handleCustomDurationConfirm}
+        />
+      </Suspense>
 
-      <SavedPlansModal
-        isOpen={isPlansModalOpen}
-        onClose={() => setIsPlansModalOpen(false)}
-        onSelectPlan={handleSelectSavedPlan}
-      />
+      <Suspense fallback={null}>
+        <SavedPlansModal
+          isOpen={isPlansModalOpen}
+          onClose={() => setIsPlansModalOpen(false)}
+          onSelectPlan={handleSelectSavedPlan}
+        />
+      </Suspense>
     </main>
   );
 }

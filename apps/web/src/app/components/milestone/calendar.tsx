@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense, useMemo, useCallback } from "react";
 import type {
   FullPlan,
   MonthlyMilestone,
@@ -6,9 +6,11 @@ import type {
   DailyTask,
 } from "../../types/planTypes";
 import { usePlan } from "../../contexts/plan-context";
-import TaskModal from "../modals/task-modal";
 import { chatWithAI } from "../../services/ai-service";
 import { FaCheck, FaCalendarAlt } from "react-icons/fa";
+
+// Lazy load modal component
+const TaskModal = lazy(() => import("../modals/task-modal"));
 
 interface CalendarProps {
   plan?: FullPlan | null;
@@ -252,7 +254,7 @@ const Calendar: React.FC<CalendarProps> = ({
     setIsTaskModalOpen(true);
   };
 
-  const handleTaskToggle = async (task: DailyTask) => {
+  const handleTaskToggle = useCallback(async (task: DailyTask) => {
     // Find the task in the plan structure to get the correct indices
     if (!displayPlan?.monthlyMilestones) return;
 
@@ -279,9 +281,9 @@ const Calendar: React.FC<CalendarProps> = ({
         }
       }
     }
-  };
+  }, [displayPlan, toggleTaskCompletion]);
 
-  const handleSendMessage = async (
+  const handleSendMessage = useCallback(async (
     message: string,
     task: DailyTask,
     plan: FullPlan
@@ -310,7 +312,7 @@ IMPORTANT: Analyze the user's message carefully.
       console.error("Failed to send message to AI:", error);
       return "Sorry, I encountered an error while processing your question. Please try again.";
     }
-  };
+  }, [chatWithAI]);
 
   // Show streaming text if available (during plan generation)
   if (streamingText) {
@@ -631,21 +633,23 @@ IMPORTANT: Analyze the user's message carefully.
       </div>
 
       {/* Task Modal */}
-      <TaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => {
-          setIsTaskModalOpen(false);
-          setSelectedTask(null);
-          setSelectedTaskIndices(null);
-        }}
-        task={selectedTask}
-        plan={displayPlan}
-        monthIndex={selectedTaskIndices?.monthIndex ?? 0}
-        weekIndex={selectedTaskIndices?.weekIndex ?? 0}
-        taskDay={selectedTaskIndices?.taskDay ?? 0}
-        onToggleComplete={handleTaskToggle}
-        onSendMessage={handleSendMessage}
-      />
+      <Suspense fallback={null}>
+        <TaskModal
+          isOpen={isTaskModalOpen}
+          onClose={() => {
+            setIsTaskModalOpen(false);
+            setSelectedTask(null);
+            setSelectedTaskIndices(null);
+          }}
+          task={selectedTask}
+          plan={displayPlan}
+          monthIndex={selectedTaskIndices?.monthIndex ?? 0}
+          weekIndex={selectedTaskIndices?.weekIndex ?? 0}
+          taskDay={selectedTaskIndices?.taskDay ?? 0}
+          onToggleComplete={handleTaskToggle}
+          onSendMessage={handleSendMessage}
+        />
+      </Suspense>
     </article>
   );
 };

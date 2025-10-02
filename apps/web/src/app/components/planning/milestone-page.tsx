@@ -1,12 +1,14 @@
 "use client";
-import React, { Suspense } from "react";
+import React, { Suspense, lazy } from "react";
 import { usePlan } from "../../contexts/plan-context";
 import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import BackgroundGradients from "../BackgroundGradients";
-import Calendar from "../../components/milestone/calendar";
-import AIInsights from "../../components/milestone/ai-insights";
-import QuickNotes from "../../components/milestone/quick-notes";
+import BackgroundGradients from "../background-gradients";
+
+// Lazy load heavy components
+const Calendar = lazy(() => import("../../components/milestone/calendar"));
+const AIInsights = lazy(() => import("../../components/milestone/ai-insights"));
+const QuickNotes = lazy(() => import("../../components/milestone/quick-notes"));
 
 /**
  * @description
@@ -159,7 +161,14 @@ export default function MilestonePage() {
               }>
                 <AIInsights plan={plan || undefined} planId={currentPlanId || undefined} />
               </Suspense>
-              <QuickNotes />
+              <Suspense fallback={
+                <div className="bg-white/5 rounded-lg p-6 animate-pulse">
+                  <div className="h-6 bg-white/10 rounded mb-3"></div>
+                  <div className="h-24 bg-white/10 rounded"></div>
+                </div>
+              }>
+                <QuickNotes />
+              </Suspense>
             </div>
           </div>
         </div>

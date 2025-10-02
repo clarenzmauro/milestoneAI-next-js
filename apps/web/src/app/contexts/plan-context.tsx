@@ -1,8 +1,8 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useCallback, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import { generatePlan as apiGeneratePlan } from "../services/ai-service";
 import type { FullPlan } from "../types/planTypes";
-import { parsePlanString } from "../utils/planParser";
+import { parsePlanString } from "../utils/plan-parser";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
@@ -68,11 +68,15 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const updatePlanMutation = useMutation(api.plans.updatePlan);
   const generateInsights = useAction(api.insights.recomputeInsightsForPlan);
 
-  const setGoal = (newGoal: string) => {
-    setGoalState(newGoal);
-  };
+  // Debounce streaming plan parsing to reduce performance overhead
+  const lastParseTimeRef = useRef<number>(0);
+  const PARSE_DEBOUNCE_MS = 500; // Only parse every 500ms during streaming
 
-  const resetPlanState = () => {
+  const setGoal = useCallback((newGoal: string) => {
+    setGoalState(newGoal);
+  }, []);
+
+  const resetPlanState = useCallback(() => {
     setPlanState(null);
     setStreamingPlanText(null);
     setStreamingPlan(null);
@@ -82,7 +86,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setSelectedDurationState(null);
     setGoalState(null);
     setCurrentPlanIdState(null);
-  };
+  }, []);
 
   const startBackgroundGeneration = (goal: string) => {
     // Don't start if already generating
@@ -130,18 +134,23 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
           accumulatedText += chunk;
           setStreamingPlanText(accumulatedText);
 
-          try {
-            const parsedStreamingPlan = parsePlanString(
-              accumulatedText,
-              trimmedGoal,
-              selectedDuration || undefined,
-              true
-            );
-            if (parsedStreamingPlan) {
-              setStreamingPlan(parsedStreamingPlan);
+          // Debounce streaming plan parsing to reduce performance overhead
+          const now = Date.now();
+          if (now - lastParseTimeRef.current >= PARSE_DEBOUNCE_MS) {
+            try {
+              const parsedStreamingPlan = parsePlanString(
+                accumulatedText,
+                trimmedGoal,
+                selectedDuration || undefined,
+                true
+              );
+              if (parsedStreamingPlan) {
+                setStreamingPlan(parsedStreamingPlan);
+              }
+              lastParseTimeRef.current = now;
+            } catch (parseError) {
+              console.debug("Streaming parse failed:", parseError);
             }
-          } catch (parseError) {
-            console.debug("Streaming parse failed:", parseError);
           }
 
           if (onChunk) {
@@ -317,11 +326,11 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     }
   };
 
-  const setPlan = (loadedPlan: FullPlan) => {
+  const setPlan = useCallback((loadedPlan: FullPlan) => {
     setPlanState(loadedPlan);
     setError(null);
     setIsLoading(false);
-  };
+  }, []);
 
   const saveCurrentPlan = async () => {
     if (!user) {
@@ -411,7 +420,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     }
   };
 
-  const contextValue: IPlanContext = {
+  const contextValue: IPlanContext = useMemo(() => ({
     plan,
     streamingPlanText,
     streamingPlan,
@@ -431,7 +440,27 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     saveCurrentPlan,
     toggleTaskCompletion,
     resetPlanState,
-  };
+  }), [
+    plan,
+    streamingPlanText,
+    streamingPlan,
+    isLoading,
+    backgroundGenerationInProgress,
+    error,
+    selectedDuration,
+    goal,
+    currentPlanId,
+    generateNewPlan,
+    startBackgroundGeneration,
+    setPlanFromString,
+    setPlan,
+    setSelectedDurationState,
+    setGoal,
+    setCurrentPlanIdState,
+    saveCurrentPlan,
+    toggleTaskCompletion,
+    resetPlanState,
+  ]);
 
   return (
     <PlanContext.Provider value={contextValue}>{children}</PlanContext.Provider>

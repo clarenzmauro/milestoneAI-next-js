@@ -3,7 +3,7 @@ import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePlan } from "../../contexts/plan-context";
 import { validateGoal } from "../../services/ai-service";
-import BackgroundGradients from "../BackgroundGradients";
+import BackgroundGradients from "../background-gradients";
 import { UserButton } from "@clerk/nextjs";
 
 interface ValidationResult {

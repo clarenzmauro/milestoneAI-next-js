@@ -1,5 +1,5 @@
 import { SignUp } from '@clerk/nextjs';
-import BackgroundGradients from '../../../components/BackgroundGradients';
+import BackgroundGradients from '../../../components/background-gradients';
 
 export default function SignUpCatchAllPage() {
   return (

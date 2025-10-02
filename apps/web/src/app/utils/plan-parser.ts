@@ -1,5 +1,23 @@
 import type { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../types/planTypes';
 
+// Simple LRU cache for plan parsing to avoid expensive re-parsing
+const PLAN_CACHE = new Map<string, FullPlan>();
+const MAX_CACHE_SIZE = 10;
+
+function getCacheKey(planString: string, goal: string, duration?: number, isStreaming = false): string {
+  return `${planString.length}-${goal}-${duration || 'default'}-${isStreaming}`;
+}
+
+function setCache(key: string, value: FullPlan) {
+  if (PLAN_CACHE.size >= MAX_CACHE_SIZE) {
+    const firstKey = PLAN_CACHE.keys().next().value;
+    if (firstKey) {
+      PLAN_CACHE.delete(firstKey);
+    }
+  }
+  PLAN_CACHE.set(key, value);
+}
+
 /**
  * Strips markdown formatting from text
  */
@@ -74,6 +92,15 @@ function areTasksSimilar(task1: string, task2: string, threshold: number = 0.8):
  */
 export const parsePlanString = (rawPlanString: string, userGoal: string, expectedDuration?: number, isStreaming = false): FullPlan | null => {
   if (!rawPlanString) return null;
+
+  // Check cache for completed plans (not streaming)
+  if (!isStreaming) {
+    const cacheKey = getCacheKey(rawPlanString, userGoal, expectedDuration, isStreaming);
+    const cached = PLAN_CACHE.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
 
   const lines = rawPlanString.split('\n').filter(line => line.trim() !== '');
   const plan: FullPlan = {
@@ -199,6 +226,12 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, expecte
   if (plan.monthlyMilestones.length === 0 && !hasWeeklyStructure) {
     console.warn('Parser could not find any monthly milestones or weekly structure.');
     return null;
+  }
+
+  // Cache successful parses
+  if (!isStreaming) {
+    const cacheKey = getCacheKey(rawPlanString, userGoal, expectedDuration, isStreaming);
+    setCache(cacheKey, plan);
   }
 
   return plan;
