@@ -5,25 +5,58 @@ import Providers from './providers';
 import { ClerkProvider } from '@clerk/nextjs';
 
 export const metadata: Metadata = {
-  title: 'MilestoneAI',
-  description: 'Generate and track your 90-day plan with AI assistance.',
+  title: 'MilestoneAI - AI-Powered 90-Day Planning',
+  description: 'Generate and track your 90-day plan with AI assistance. Transform your goals into actionable milestones with intelligent insights and progress tracking.',
+  keywords: ['AI planning', 'goal tracking', 'milestone management', 'productivity', 'project planning', '90-day plan'],
+  authors: [{ name: 'MilestoneAI Team' }],
+  creator: 'MilestoneAI',
+  publisher: 'MilestoneAI',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://milestone-ai-next-js-web.vercel.app/'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'MilestoneAI - AI-Powered 90-Day Planning',
+    description: 'Generate and track your 90-day plan with AI assistance. Transform your goals into actionable milestones with intelligent insights and progress tracking.',
+    url: '/',
+    siteName: 'MilestoneAI',
+    images: [
+      {
+        url: '/milestoneAI.png',
+        width: 1200,
+        height: 630,
+        alt: 'MilestoneAI Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MilestoneAI - AI-Powered 90-Day Planning',
+    description: 'Generate and track your 90-day plan with AI assistance. Transform your goals into actionable milestones with intelligent insights and progress tracking.',
+    images: ['/milestoneAI.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
-/**
- * @description
- * Root layout for the Next.js App Router. Sets up global HTML scaffolding and wraps
- * the application with shared providers (authentication, data, and app state).
- *
- * @receives data from:
- * - None: Framework entry point for all routes in `app/`.
- *
- * @sends data to:
- * - providers.tsx; Providers: Supplies Clerk, Convex (when configured), and Plan context
- * - All route segments as children
- *
- * @sideEffects:
- * - Initializes client-side providers and global styles for the entire app.
- */
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
