@@ -1,4 +1,3 @@
-import React from 'react';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import aiPoweredPlanningImg from '../../public/ai-powered-planning.png';

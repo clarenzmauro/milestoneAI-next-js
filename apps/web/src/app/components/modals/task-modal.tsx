@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { FaCheck, FaTimes, FaRobot, FaUser } from "react-icons/fa";
+import { useState, useEffect, useRef } from "react";
+import { FaCheck, FaTimes, FaRobot } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { DailyTask, FullPlan } from "../../types/plan-types";

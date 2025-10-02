@@ -17,7 +17,6 @@ import type * as chat from "../chat.js";
 import type * as insights from "../insights.js";
 import type * as notes from "../notes.js";
 import type * as plans from "../plans.js";
-import type * as todos from "../todos.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -32,7 +31,6 @@ declare const fullApi: ApiFromModules<{
   insights: typeof insights;
   notes: typeof notes;
   plans: typeof plans;
-  todos: typeof todos;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

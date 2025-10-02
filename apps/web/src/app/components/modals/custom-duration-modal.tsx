@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePlan } from '../../contexts/plan-context';
 
 interface CustomDurationModalProps {

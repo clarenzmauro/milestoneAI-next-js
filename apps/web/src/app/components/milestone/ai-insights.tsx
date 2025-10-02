@@ -1,4 +1,3 @@
-import React from 'react';
 import type { FullPlan } from '../../types/plan-types';
 import { FaLightbulb } from 'react-icons/fa';
 import { useQuery } from 'convex/react';
