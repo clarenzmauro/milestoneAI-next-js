@@ -50,6 +50,7 @@
       "name": "@milestoneAI-next-js/backend",
       "version": "1.0.0",
       "dependencies": {
+        "@google/generative-ai": "^0.24.0",
         "convex": "^1.25.4",
       },
       "devDependencies": {

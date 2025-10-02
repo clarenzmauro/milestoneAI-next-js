@@ -74,6 +74,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setStreamingPlan(null);
     setIsLoading(false);
     setError(null);
+    setSelectedDurationState(null);
     setGoalState(null);
     setCurrentPlanIdState(null);
   };
