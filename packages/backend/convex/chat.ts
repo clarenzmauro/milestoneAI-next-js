@@ -54,17 +54,12 @@ export const listMessages = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
-    console.log(`[CHAT:listMessages] Querying plan ${planId}, task ${taskIdentifier} for user ${identity.subject}`);
-
     // First check if the plan exists
     const plan = await ctx.db.get(planId);
     if (!plan) {
-      console.log(`[CHAT:listMessages] Plan ${planId} does not exist`);
       // Plan doesn't exist - return empty array
       return { page: [], continueCursor: null, isDone: true };
     }
-
-    console.log(`[CHAT:listMessages] Plan ${planId} exists with userId ${plan.userId}`);
 
     // Check plan ownership
     if (plan.userId !== identity.subject) {

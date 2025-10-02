@@ -184,7 +184,6 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, expecte
         return null;
       }
       // Allow plans with reasonable number of unique tasks
-      console.log(`Proceeding with ${totalTasksFound} unique tasks (expected ${expectedDuration})`);
     }
   }
 

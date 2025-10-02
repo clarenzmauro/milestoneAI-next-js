@@ -187,9 +187,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
             setPlanState(null);
             return;
           }
-          console.log(
-            `Proceeding with ${totalTasks} unique tasks out of ${selectedDuration} expected`
-          );
         }
 
         setPlanState(parsedPlan);

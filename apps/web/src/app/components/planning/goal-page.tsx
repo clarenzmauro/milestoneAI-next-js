@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { usePlan } from "../../contexts/plan-context";
 import { validateGoal } from "../../services/ai-service";
 import BackgroundGradients from "../BackgroundGradients";
+import { UserButton } from "@clerk/nextjs";
 
 interface ValidationResult {
   isValid: boolean;
@@ -140,7 +141,7 @@ export default function GoalPage() {
         }}
       >
         <nav
-          className="mx-auto flex max-w-7xl items-center px-6 py-4"
+          className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4"
           aria-label="Primary"
         >
           <div
@@ -149,6 +150,15 @@ export default function GoalPage() {
           >
             MilestoneAI
           </div>
+
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                avatarBox: "w-8 h-8",
+              },
+            }}
+          />
         </nav>
       </header>
 
