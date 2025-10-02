@@ -2,32 +2,21 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 function requireUser(ctx: any) {
-  const identity = ctx.auth.getUserIdentity();
-  if (!identity) {
-    console.log("[CHAT] No user identity found in context");
-    throw new Error("Unauthorized");
-  }
-  return identity.subject as string;
+  return ctx.auth.getUserIdentity();
 }
 
 export const appendMessage = mutation({
   args: {
     planId: v.id("plans"),
+    taskIdentifier: v.string(),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
     content: v.string(),
     tokens: v.optional(v.number()),
     toolCalls: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    // For development, temporarily allow unauthenticated access
-    // TODO: Fix authentication properly
-    let userId;
-    try {
-      userId = requireUser(ctx);
-    } catch (error) {
-      console.log(`[CHAT:appendMessage] No authentication, allowing access for plan ${args.planId}`);
-      userId = "anonymous"; // Use a placeholder for unauthenticated access
-    }
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
 
     const plan = await ctx.db.get(args.planId);
     if (!plan) {
@@ -35,15 +24,16 @@ export const appendMessage = mutation({
       throw new Error("Not found");
     }
 
-    // In development, allow access if not authenticated, otherwise check ownership
-    if (userId !== "anonymous" && plan.userId !== userId) {
-      console.error(`[CHAT:appendMessage] ACCESS DENIED: Plan ${args.planId} belongs to ${plan.userId} but mutation is from ${userId}`);
+    // Check plan ownership
+    if (plan.userId !== identity.subject) {
+      console.error(`[CHAT:appendMessage] ACCESS DENIED: Plan ${args.planId} belongs to ${plan.userId} but mutation is from ${identity.subject}`);
       throw new Error("Not found");
     }
 
     await ctx.db.insert("chatMessages", {
-      userId: userId === "anonymous" ? plan.userId : userId, // Use plan owner if anonymous
+      userId: identity.subject,
       planId: args.planId,
+      taskIdentifier: args.taskIdentifier,
       role: args.role,
       content: args.content,
       tokens: args.tokens,
@@ -54,19 +44,17 @@ export const appendMessage = mutation({
 });
 
 export const listMessages = query({
-  args: { planId: v.id("plans"), limit: v.optional(v.number()), cursor: v.optional(v.any()) },
-  handler: async (ctx, { planId, limit = 100, cursor }) => {
-    // For development, temporarily allow unauthenticated access
-    // TODO: Fix authentication properly
-    let userId;
-    try {
-      userId = requireUser(ctx);
-    } catch (error) {
-      console.log(`[CHAT:listMessages] No authentication, allowing access for plan ${planId}`);
-      userId = null;
-    }
+  args: {
+    planId: v.id("plans"),
+    taskIdentifier: v.string(),
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.any())
+  },
+  handler: async (ctx, { planId, taskIdentifier, limit = 100, cursor }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
 
-    console.log(`[CHAT:listMessages] Querying plan ${planId} for user ${userId}`);
+    console.log(`[CHAT:listMessages] Querying plan ${planId}, task ${taskIdentifier} for user ${identity.subject}`);
 
     // First check if the plan exists
     const plan = await ctx.db.get(planId);
@@ -78,15 +66,15 @@ export const listMessages = query({
 
     console.log(`[CHAT:listMessages] Plan ${planId} exists with userId ${plan.userId}`);
 
-    // In development, allow access if not authenticated, otherwise check ownership
-    if (userId && plan.userId !== userId) {
-      console.error(`[CHAT:listMessages] ACCESS DENIED: Plan belongs to ${plan.userId} but query is from ${userId}`);
+    // Check plan ownership
+    if (plan.userId !== identity.subject) {
+      console.error(`[CHAT:listMessages] ACCESS DENIED: Plan belongs to ${plan.userId} but query is from ${identity.subject}`);
       return { page: [], continueCursor: null, isDone: true };
     }
 
     return await ctx.db
       .query("chatMessages")
-      .withIndex("by_plan_created", (q) => q.eq("planId", planId))
+      .withIndex("by_plan_task_created", (q) => q.eq("planId", planId).eq("taskIdentifier", taskIdentifier))
       .order("asc")
       .paginate({ numItems: limit, cursor });
   },

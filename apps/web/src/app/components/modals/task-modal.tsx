@@ -6,12 +6,16 @@ import type { DailyTask, FullPlan } from "../../types/planTypes";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
 import { usePlan } from "../../contexts/plan-context";
+import { useUser } from "@clerk/nextjs";
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: DailyTask | null;
   plan: FullPlan | null;
+  monthIndex: number;
+  weekIndex: number;
+  taskDay: number;
   onToggleComplete: (task: DailyTask) => void;
   onSendMessage: (
     message: string,
@@ -25,6 +29,9 @@ export default function TaskModal({
   onClose,
   task,
   plan,
+  monthIndex,
+  weekIndex,
+  taskDay,
   onToggleComplete,
   onSendMessage,
 }: TaskModalProps) {
@@ -32,14 +39,18 @@ export default function TaskModal({
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { currentPlanId } = usePlan();
+  const { user, isLoaded } = useUser();
 
+  // Create unique task identifier: "month-week-day"
+  const taskIdentifier = `${monthIndex}-${weekIndex}-${taskDay}`;
 
   const messagesPage = useQuery(
     api.chat.listMessages,
-    currentPlanId ? { planId: currentPlanId } : "skip"
+    currentPlanId ? { planId: currentPlanId, taskIdentifier } : "skip"
   );
   const messages = messagesPage?.page ?? [];
-  const hasChatError = !messagesPage && currentPlanId !== null; // Error if we have a planId but no messagesPage
+  const hasChatError = !messagesPage && currentPlanId !== null && isLoaded && user; // Error if we have a planId but no messagesPage and user is authenticated
+  const isChatDisabled = Boolean(isLoading || currentPlanId === null || hasChatError || !isLoaded || (user === null));
   const appendMessage = useMutation(api.chat.appendMessage);
   const recomputeInsights = useAction(api.insights.recomputeInsightsForPlan);
 
@@ -52,6 +63,7 @@ export default function TaskModal({
     // 1. Persist user message
     await appendMessage({
       planId: currentPlanId,
+      taskIdentifier,
       role: "user",
       content: userMessageContent,
     });
@@ -64,6 +76,7 @@ export default function TaskModal({
       // 3. Persist assistant message
       await appendMessage({
         planId: currentPlanId,
+        taskIdentifier,
         role: "assistant",
         content: response,
       });
@@ -74,6 +87,7 @@ export default function TaskModal({
       // Persist the error message from the assistant
       await appendMessage({
         planId: currentPlanId,
+        taskIdentifier,
         role: "assistant",
         content: "Sorry, I encountered an error. Please try again.",
       });
@@ -182,7 +196,21 @@ export default function TaskModal({
               ref={chatContainerRef}
               className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
             >
-              {hasChatError ? (
+              {!isLoaded ? (
+                <div className="text-center py-8">
+                  <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Loading chat...
+                  </p>
+                </div>
+              ) : user === null ? (
+                <div className="text-center py-8">
+                  <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Please sign in to use chat
+                  </p>
+                </div>
+              ) : hasChatError ? (
                 <div className="text-center py-8">
                   <FaRobot className="text-2xl text-[var(--accent-cyan)] mx-auto mb-3" />
                   <p className="text-sm text-[var(--text-secondary)]">
@@ -324,14 +352,19 @@ export default function TaskModal({
                       handleSendMessage();
                     }
                   }}
-                  placeholder={hasChatError ? "Chat unavailable for this plan" : "Ask about this task..."}
+                  placeholder={
+                    !isLoaded ? "Loading..." :
+                    user === null ? "Sign in to chat" :
+                    hasChatError ? "Chat unavailable for this plan" :
+                    "Ask about this task..."
+                  }
                   aria-label="Chat input"
                   className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--neutral-950)] text-[var(--text-inverse)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-cyan)] focus:outline-none text-sm resize-none max-h-40"
-                  disabled={isLoading || currentPlanId === null || hasChatError}
+                  disabled={isChatDisabled}
                 />
                 <button
                   onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || isLoading || currentPlanId === null || hasChatError}
+                  disabled={!messageInput.trim() || isChatDisabled}
                   aria-label="Send message"
                   className="px-3 py-2 bg-[var(--accent-cyan)] text-white rounded-lg font-medium hover:bg-opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >

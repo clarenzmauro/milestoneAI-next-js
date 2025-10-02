@@ -39,6 +39,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const { toggleTaskCompletion } = usePlan();
   const [currentDate] = React.useState(new Date());
   const [selectedTask, setSelectedTask] = useState<DailyTask | null>(null);
+  const [selectedTaskIndices, setSelectedTaskIndices] = useState<{monthIndex: number, weekIndex: number, taskDay: number} | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   // Use streaming plan if available, otherwise use regular plan
@@ -237,8 +238,9 @@ const Calendar: React.FC<CalendarProps> = ({
     return months;
   }, [calendarData, displayPlan?.monthlyMilestones]);
 
-  const handleTaskClick = (task: DailyTask) => {
+  const handleTaskClick = (task: DailyTask, monthIndex: number, weekIndex: number, taskDay: number) => {
     setSelectedTask(task);
+    setSelectedTaskIndices({ monthIndex, weekIndex, taskDay });
     setIsTaskModalOpen(true);
   };
 
@@ -277,12 +279,19 @@ const Calendar: React.FC<CalendarProps> = ({
     plan: FullPlan
   ): Promise<string> => {
     try {
-      // Create a contextual message for the AI
-      const contextualMessage = `Regarding this specific task: "${task.description}"
+      // Create a contextual message for the AI that prioritizes user's message
+      // but provides task context for relevant responses
+      const contextualMessage = `User: ${message}
 
-User question: ${message}
+Context: You're chatting about this task: "${task.description}"
+This task is part of a 90-day plan with the goal: "${plan.goal}"
 
-Please provide helpful guidance about this task in the context of the overall goal: "${plan.goal}". Focus on how this task contributes to the plan and offer practical advice.`;
+IMPORTANT: Analyze the user's message carefully.
+
+- If the message is a simple greeting, single word, or casual phrase (like "hey", "hi", "hello", "sup", "yo", "hey there", "what's up", "howdy"), respond with a very brief, friendly, casual reply. Do NOT provide task guidance or explanations.
+- If the message shows clear intent to get help, advice, or information about the task (like "how do I...", "what should I...", "can you explain...", "help with..."), then provide helpful guidance about the task.
+- If the message is a question or statement that relates to the task content, provide relevant guidance.
+- Default to brief, casual responses for unclear or very short messages.`;
 
       // Use empty history for task-specific chat
       const history: Array<{ role: "user" | "model"; parts: string }> = [];
@@ -405,9 +414,13 @@ Please provide helpful guidance about this task in the context of the overall go
           onClose={() => {
             setIsTaskModalOpen(false);
             setSelectedTask(null);
+            setSelectedTaskIndices(null);
           }}
           task={selectedTask}
           plan={displayPlan || null}
+          monthIndex={selectedTaskIndices?.monthIndex ?? 0}
+          weekIndex={selectedTaskIndices?.weekIndex ?? 0}
+          taskDay={selectedTaskIndices?.taskDay ?? 0}
           onToggleComplete={handleTaskToggle}
           onSendMessage={handleSendMessage}
         />
@@ -554,7 +567,7 @@ Please provide helpful guidance about this task in the context of the overall go
                             <div
                               key={task.day}
                               className="cursor-pointer"
-                              onClick={() => handleTaskClick(task)}
+                              onClick={() => handleTaskClick(task, monthIndex, weekIndex, task.day)}
                             >
                               <div className="flex items-start space-x-1 group">
                                 <div
@@ -604,9 +617,13 @@ Please provide helpful guidance about this task in the context of the overall go
         onClose={() => {
           setIsTaskModalOpen(false);
           setSelectedTask(null);
+          setSelectedTaskIndices(null);
         }}
         task={selectedTask}
         plan={displayPlan}
+        monthIndex={selectedTaskIndices?.monthIndex ?? 0}
+        weekIndex={selectedTaskIndices?.weekIndex ?? 0}
+        taskDay={selectedTaskIndices?.taskDay ?? 0}
         onToggleComplete={handleTaskToggle}
         onSendMessage={handleSendMessage}
       />

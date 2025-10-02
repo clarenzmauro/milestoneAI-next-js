@@ -52,17 +52,18 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_goal", ["userId", "goal"]),
 
-  // Per-plan chat messages for the AI chat modal
+  // Per-plan, per-task chat messages for the AI chat modal
   chatMessages: defineTable({
     userId: v.string(),
     planId: v.id("plans"),
+    taskIdentifier: v.string(), // Format: "month-week-day" e.g., "1-2-3"
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
     content: v.string(),
     tokens: v.optional(v.number()),
     toolCalls: v.optional(v.any()),
     createdAt: v.number(),
   })
-    .index("by_plan_created", ["planId", "createdAt"]) 
+    .index("by_plan_task_created", ["planId", "taskIdentifier", "createdAt"])
     .index("by_user_created", ["userId", "createdAt"]),
 
   // Insights generated from plans and/or chat
