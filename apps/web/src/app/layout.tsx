@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import './index.css';
 import Providers from './providers';
 import { ClerkProvider } from '@clerk/nextjs';
@@ -30,7 +31,13 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body>
-          <Providers>{children}</Providers>
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--bg-deep)' }}>
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+            </div>
+          }>
+            <Providers>{children}</Providers>
+          </Suspense>
         </body>
       </html>
     </ClerkProvider>

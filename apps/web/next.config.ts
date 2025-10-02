@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   output: "standalone",
   experimental: {
+    ppr: true,
     optimizePackageImports: [
       "lucide-react",
       "react-icons",

@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { Suspense } from "react";
 import { usePlan } from "../../contexts/plan-context";
 import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -134,16 +134,30 @@ export default function MilestonePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calendar Section - Takes up 2 columns on large screens */}
             <div className="lg:col-span-2">
-              <Calendar
-                plan={plan as any}
-                streamingText={streamingPlanText ?? undefined}
-                streamingPlan={streamingPlan}
-              />
+              <Suspense fallback={
+                <div className="bg-white/5 rounded-lg p-8 animate-pulse">
+                  <div className="h-8 bg-white/10 rounded mb-4"></div>
+                  <div className="h-64 bg-white/10 rounded"></div>
+                </div>
+              }>
+                <Calendar
+                  plan={plan as any}
+                  streamingText={streamingPlanText ?? undefined}
+                  streamingPlan={streamingPlan}
+                />
+              </Suspense>
             </div>
 
             {/* Sidebar with AI Insights and Quick Notes */}
             <div className="space-y-8">
-              <AIInsights plan={plan || undefined} />
+              <Suspense fallback={
+                <div className="bg-white/5 rounded-lg p-6 animate-pulse">
+                  <div className="h-6 bg-white/10 rounded mb-3"></div>
+                  <div className="h-32 bg-white/10 rounded"></div>
+                </div>
+              }>
+                <AIInsights plan={plan || undefined} />
+              </Suspense>
               <QuickNotes />
             </div>
           </div>
