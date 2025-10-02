@@ -3,15 +3,12 @@ import type { ReactNode } from "react";
 import { generatePlan as apiGeneratePlan } from "../services/ai-service";
 import type { FullPlan } from "../types/planTypes";
 import { parsePlanString } from "../utils/planParser";
-import { checkAndUnlockAchievements } from "../services/achievementService";
-import type { AchievementDefinition } from "../config/achievements";
 import { useUser } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
 import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
 import type { Id } from "@milestoneAI-next-js/backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 
-// 1. Define the shape of the context data
 export interface IPlanContext {
   plan: FullPlan | null;
   streamingPlanText: string | null;
@@ -42,10 +39,8 @@ export interface IPlanContext {
   resetPlanState: () => void;
 }
 
-// 2. Create the Context
 export const PlanContext = createContext<IPlanContext | undefined>(undefined);
 
-// 3. Create the Provider Component
 interface PlanProviderProps {
   children: ReactNode;
 }
@@ -68,37 +63,10 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const { user } = useUser();
   const savePlanMutation = useMutation(api.plans.savePlan);
 
-  /**
-   * @description
-   * Set the user's goal for plan generation.
-   *
-   * @receives data from:
-   * - GoalPage.tsx; handleContinue: User enters goal and continues
-   *
-   * @sends data to:
-   * - N/A
-   *
-   * @sideEffects:
-   * - Mutates context state: goal
-   */
   const setGoal = (newGoal: string) => {
     setGoalState(newGoal);
   };
 
-  // Function to reset all relevant plan states
-  /**
-   * @description
-   * Reset all plan-related UI and error/loading state to initial values.
-   *
-   * @receives data from:
-   * - Sidebar.tsx; resetPlanState: User clicks "New Plan" or clears plan
-   *
-   * @sends data to:
-   * - N/A
-   *
-   * @sideEffects:
-   * - Mutates context state: plan, streamingPlanText, isLoading, error, goal
-   */
   const resetPlanState = () => {
     setPlanState(null);
     setStreamingPlanText(null);
@@ -109,22 +77,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setCurrentPlanIdState(null);
   };
 
-  /**
-   * @description
-   * Generate a new plan via AI and set state. Streams partial text to UI, parses final plan,
-   * checks achievements, and persists to Convex when signed in.
-   *
-   * @receives data from:
-   * - Sidebar.tsx; handlePlanGeneration: goal and optional onChunk callback
-   *
-   * @sends data to:
-   * - services/aiService.ts; generatePlan: Requests streamed plan
-   * - services/achievementService.ts; checkAndUnlockAchievements: Updates achievements
-   * - Convex plans.savePlan: Persists the generated plan when user exists
-   *
-   * @sideEffects:
-   * - Network calls to AI backend and Convex; mutates plan state
-   */
   const generateNewPlan = async (
     goal: string,
     onChunk?: (chunk: string) => void
@@ -149,7 +101,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
           accumulatedText += chunk;
           setStreamingPlanText(accumulatedText);
 
-          // Try to parse the streaming text incrementally for display
           try {
             const parsedStreamingPlan = parsePlanString(
               accumulatedText,
@@ -161,18 +112,15 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
               setStreamingPlan(parsedStreamingPlan);
             }
           } catch (parseError) {
-            // Ignore parsing errors during streaming - they'll be resolved when complete
             console.debug("Streaming parse failed:", parseError);
           }
 
-          // Also call the provided onChunk callback if it exists
           if (onChunk) {
             onChunk(chunk);
           }
         }
       );
 
-      // Clear streaming text and plan once plan is fully generated
       setStreamingPlanText(null);
       setStreamingPlan(null);
 
@@ -183,7 +131,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       );
 
       if (parsedPlan) {
-        // Validate task count matches expected duration
         let totalTasks = 0;
         parsedPlan.monthlyMilestones.forEach((month) => {
           month.weeklyObjectives.forEach((week) => {
@@ -207,25 +154,19 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
           );
         }
 
-        // --- Check for initial achievements on plan generation ---
-        const { updatedPlan: planWithInitialAchievements } =
-          checkAndUnlockAchievements(parsedPlan);
-        setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked
-        // Note: We don't trigger toasts here, only on task completion later.
+        setPlanState(parsedPlan);
 
-        // --- Auto-save if user is logged in ---
         if (user) {
           try {
             const insertedId = await savePlanMutation({
               userId: user.id,
-              plan: planWithInitialAchievements,
+              plan: parsedPlan,
             });
             if (insertedId) setCurrentPlanIdState(insertedId as Id<"plans">);
           } catch (saveError) {
             console.error("[PlanContext] Auto-save failed:", saveError);
           }
         }
-        // --- End auto-save ---
       } else {
         console.error(
           "Failed to parse the generated plan string. Raw string:",
@@ -254,20 +195,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     }
   };
 
-  /**
-   * @description
-   * Parse an AI-updated plan string and replace current plan; persists when signed in.
-   *
-   * @receives data from:
-   * - Sidebar.tsx; handleChatOrRefinement: AI response string and original goal
-   *
-   * @sends data to:
-   * - services/achievementService.ts; checkAndUnlockAchievements
-   * - Convex plans.savePlan: Persists updated plan
-   *
-   * @sideEffects:
-   * - Mutates plan state; network call to Convex when user exists
-   */
   const setPlanFromString = async (
     planString: string,
     originalGoal: string | undefined
@@ -280,18 +207,13 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       const parsedPlan = parsePlanString(planString, goalForParsing);
 
       if (parsedPlan) {
-        // --- Check for initial achievements on plan load from string ---
-        const { updatedPlan: planWithInitialAchievements } =
-          checkAndUnlockAchievements(parsedPlan);
-        setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked
-        // Note: We don't trigger toasts here.
+        setPlanState(parsedPlan);
 
-        // --- Auto-save if user is logged in ---
         if (user) {
           try {
             const insertedId = await savePlanMutation({
               userId: user.id,
-              plan: planWithInitialAchievements,
+              plan: parsedPlan,
             });
             if (!currentPlanId && insertedId)
               setCurrentPlanIdState(insertedId as Id<"plans">);
@@ -300,10 +222,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
               "[PlanContext] Updated plan auto-save failed:",
               saveError
             );
-            // Log error, but don't interrupt user flow
           }
         }
-        // --- End auto-save ---
 
         setIsLoading(false);
         return true;
@@ -329,41 +249,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     }
   };
 
-  /**
-   * @description
-   * Directly sets the plan state, e.g., when loading from Saved Plans.
-   *
-   * @receives data from:
-   * - Sidebar.tsx; handleLoadPlan: FullPlan to set
-   *
-   * @sends data to:
-   * - services/achievementService.ts; checkAndUnlockAchievements
-   *
-   * @sideEffects:
-   * - Mutates plan state
-   */
   const setPlan = (loadedPlan: FullPlan) => {
-    // Ensure achievements are checked on load, but don't trigger toasts
-    const { updatedPlan: planWithAchievements } =
-      checkAndUnlockAchievements(loadedPlan);
-    setPlanState(planWithAchievements);
-    setError(null); // Clear any previous errors when setting a new plan
-    setIsLoading(false); // Ensure loading is false
+    setPlanState(loadedPlan);
+    setError(null);
+    setIsLoading(false);
   };
 
-  /**
-   * @description
-   * Persist the current plan to Convex when user exists.
-   *
-   * @receives data from:
-   * - Sidebar.tsx; saveCurrentPlan action
-   *
-   * @sends data to:
-   * - Convex plans.savePlan: Persists the plan document
-   *
-   * @sideEffects:
-   * - Network call to Convex
-   */
   const saveCurrentPlan = async () => {
     if (!user) {
       setError("You must be logged in to save.");
@@ -382,38 +273,21 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         "[PlanContext] Failed to save current plan state:",
         saveError
       );
-      setError("Failed to save the current plan progress."); // Set an error for the user
+      setError("Failed to save the current plan progress.");
     }
   };
 
-  /**
-   * @description
-   * Toggle completion for a task and persist the updated plan (optimistic update).
-   *
-   * @receives data from:
-   * - MainContent.tsx; handleTaskToggle: indices for month/week/day
-   *
-   * @sends data to:
-   * - services/achievementService.ts; checkAndUnlockAchievements
-   * - Convex plans.savePlan: Persists the plan after toggle
-   *
-   * @sideEffects:
-   * - Mutates plan state; network call to Convex
-   */
   const toggleTaskCompletion = async (
     monthIndex: number,
     weekIndex: number,
     taskDay: number
   ) => {
-    if (!plan) return; // No plan loaded
+    if (!plan) return;
 
-    const originalPlanState = plan; // Keep a reference to revert if save fails
-    let planAfterToggle: FullPlan | null = null; // To hold state after local toggle
-    let newlyUnlockedAchievements: AchievementDefinition[] = [];
+    const originalPlanState = plan;
+    let planAfterToggle: FullPlan | null = null;
 
-    // --- 1. Optimistic UI Update & Achievement Check ---
     try {
-      // Create a deep copy for local modification
       const tempUpdatedPlan = JSON.parse(
         JSON.stringify(originalPlanState)
       ) as FullPlan;
@@ -424,50 +298,26 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       );
 
       if (task) {
-        task.completed = !task.completed; // Toggle status
+        task.completed = !task.completed;
+        planAfterToggle = tempUpdatedPlan;
 
-        // Only check achievements and show toasts when completing a task
-        if (task.completed) {
-          const achievementResult = checkAndUnlockAchievements(tempUpdatedPlan);
-          planAfterToggle = achievementResult.updatedPlan; // Plan with potentially new achievements
-          newlyUnlockedAchievements = achievementResult.newlyUnlocked;
-        } else {
-          // If un-completing, just use the plan with the toggled task
-          planAfterToggle = tempUpdatedPlan;
-        }
-
-        setPlanState(planAfterToggle); // Update local state immediately
-
-        // Trigger toasts *after* state update
-        newlyUnlockedAchievements.forEach((ach) => {
-          toast.success(`Achievement Unlocked: ${ach.name}!`, {
-            icon: "🏆", // Example: Use an emoji icon
-            duration: 4000, // Show for 4 seconds
-          });
-        });
+        setPlanState(planAfterToggle);
       } else {
         console.error(
           `[PlanContext] Task not found for toggling: Month ${monthIndex + 1}, Week ${weekIndex + 1}, Day ${taskDay}`
         );
-        return; // Exit if task not found
+        return;
       }
     } catch (error) {
-      // Error during local update/check (e.g., JSON parsing)
-      console.error(
-        "[PlanContext] Error during local task toggle/achievement check:",
-        error
-      );
+      console.error("[PlanContext] Error during local task toggle:", error);
       setError("An internal error occurred while updating the task.");
-      setPlanState(originalPlanState); // Revert to original state
-      return; // Exit if local update failed
+      setPlanState(originalPlanState);
+      return;
     }
 
-    // --- 2. Persist Change ---
     if (user && planAfterToggle) {
-      // Ensure planAfterToggle is not null
       try {
         await savePlanMutation({ userId: user.id, plan: planAfterToggle });
-        // Save successful, optimistic update is now confirmed
       } catch (saveError) {
         console.error(
           "[PlanContext] Save after task toggle failed:",
@@ -475,16 +325,11 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         );
         setError("Failed to save task update. Reverting change.");
         toast.error("Failed to save task update.");
-        // Revert optimistic UI update on save failure
-        setPlanState(originalPlanState); // Revert to the state before the toggle
+        setPlanState(originalPlanState);
       }
-    } else if (!user) {
-      // Optional: Give feedback that progress isn't saved?
-      // toast.info('Log in to save your progress.');
     }
   };
 
-  // Value object provided by the context
   const contextValue: IPlanContext = {
     plan,
     streamingPlanText,
@@ -510,7 +355,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   );
 };
 
-// 4. Create a custom hook for easy consumption
 export const usePlan = (): IPlanContext => {
   const context = useContext(PlanContext);
   if (context === undefined) {
