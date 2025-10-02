@@ -23,6 +23,9 @@ export default function GoalPage() {
     setGoal: setContextGoal,
     selectedDuration,
     generateNewPlan,
+    backgroundGenerationInProgress,
+    startBackgroundGeneration,
+    plan,
   } = usePlan();
 
   const handleGoalValidation = useCallback(async (goalText: string) => {
@@ -38,6 +41,11 @@ export default function GoalPage() {
         selectedDuration || undefined
       );
       setValidation(result);
+
+      // Start background generation if goal is valid and not already generating
+      if (result.isValid && !backgroundGenerationInProgress) {
+        startBackgroundGeneration(goalText.trim());
+      }
     } catch (error) {
       console.error("Goal validation failed:", error);
       setValidation({
@@ -59,6 +67,9 @@ export default function GoalPage() {
     // Clear validation when user types (require manual analysis)
     setValidation(null);
     setShowSuggestions(false);
+
+    // Note: We don't cancel background generation here as it might be for a previous valid goal
+    // The generation will complete and the user can choose to continue with it or start a new one
   };
 
   const handleContinue = async () => {
@@ -83,11 +94,17 @@ export default function GoalPage() {
       console.warn("Goal has low confidence but allowing continuation");
     }
 
-    // Set the goal and start plan generation, then navigate immediately to show streaming
+    // Set the goal
     setContextGoal(trimmedGoal);
 
     try {
-      // Start plan generation with streaming - this will navigate immediately to show real-time updates
+      // If background generation is in progress or plan already exists, just navigate to view it
+      if (backgroundGenerationInProgress || plan) {
+        router.push("/app");
+        return;
+      }
+
+      // Otherwise, start plan generation with streaming - this will navigate immediately to show real-time updates
       generateNewPlan(trimmedGoal);
       // Navigate immediately to milestone page to show streaming progress
       router.push("/app");
@@ -313,7 +330,8 @@ export default function GoalPage() {
           disabled={
             !goal.trim() ||
             goal.trim().length < 5 ||
-            (validation !== null && !validation.isValid)
+            (validation !== null && !validation.isValid) ||
+            backgroundGenerationInProgress
           }
           className="inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
@@ -326,11 +344,15 @@ export default function GoalPage() {
             border: "none",
           }}
         >
-          {!validation
-            ? "Analyze Goal"
-            : validation.isValid
-              ? "Generate My Plan"
-              : "Improve Goal First"}
+          {backgroundGenerationInProgress
+            ? "View Generating Plan..."
+            : plan
+              ? "View My Plan"
+              : !validation
+                ? "Analyze Goal"
+                : validation.isValid
+                  ? "Generate My Plan"
+                  : "Improve Goal First"}
         </button>
       </section>
     </main>

@@ -363,41 +363,55 @@ function createPlanPrompt(goal: string, duration?: number): string {
     `This is a ${planDuration}-day plan. Create exactly ${planDuration} specific, actionable tasks - one for each day.` :
     'Create a comprehensive 90-day plan with exactly 90 specific, actionable tasks.';
 
-  return `You are an expert project planner. Break down this goal into EXACTLY ${planDuration} unique, sequential steps:
+  return `You are an expert project planner. Create EXACTLY ${planDuration} UNIQUE, sequential daily tasks to achieve this goal:
 
 GOAL: "${goal}"
 
 ${durationContext}
 
-PLAN STRUCTURE REQUIREMENTS:
-- Create exactly ${planDuration} different tasks (one per day)
-- Each task must be completely unique
-- Tasks must form a logical progression toward the goal
-- No task can be similar to any other task
+CRITICAL REQUIREMENTS:
+- Generate exactly ${planDuration} COMPLETELY DIFFERENT tasks (no duplicates, no similarities)
+- Each task must target a different aspect, skill, or approach
+- Progress from beginner basics to advanced mastery
+- Use different methods, tools, perspectives, and angles for each task
 
-Before creating tasks, identify the key phases this goal requires:
-1. Research/Planning phase
-2. Foundation/Gathering phase
-3. Implementation/Execution phase
-4. Optimization/Refinement phase
-5. Advanced/Specialized phase (if needed)
+PHASE BREAKDOWN - Distribute tasks across these phases:
+1. FOUNDATION (${Math.floor(planDuration * 0.25)} tasks): Research, planning, basic concepts
+2. BUILDING (${Math.floor(planDuration * 0.30)} tasks): Core skills, initial implementation
+3. ADVANCEMENT (${Math.floor(planDuration * 0.25)} tasks): Deeper practice, refinement
+4. MASTERY (${Math.floor(planDuration * 0.20)} tasks): Advanced techniques, optimization
 
-Then distribute the ${planDuration} tasks across these phases, ensuring variety within each phase.
+UNIQUENESS STRATEGIES - For each task, vary by:
+- Different skills/techniques to practice
+- Different tools/resources to use
+- Different perspectives or approaches
+- Different contexts or scenarios
+- Different depths of complexity
+- Different time allocations or intensities
 
-FORMATTING: Use EXACTLY this structure with NO variations:
+TASK VARIATION EXAMPLES:
+Instead of multiple "practice X" tasks, create:
+- Study X fundamentals
+- Apply X in a simple project
+- Teach X concepts to others
+- Analyze expert X implementations
+- Create X documentation
+- Debug X issues
+- Optimize X performance
+- Integrate X with other tools
+
+FORMATTING: Use EXACTLY this structure:
 
 ${structureDescription}
 
-CRITICAL RULES:
-- NEVER repeat the same task description
-- Each task must be fundamentally different from all others
-- Progress from basic concepts to advanced implementation
-- Make each task specific and actionable
-- Avoid generic tasks like "work on X" or "continue Y"
+VALIDATION CHECKLIST:
+□ Exactly ${planDuration} unique tasks (count them)
+□ No two tasks are similar or could be considered the same activity
+□ Each task has a different focus/skill/technique
+□ Tasks progress logically from basic to advanced
+□ All tasks are specific and actionable
 
-If you run out of unique ideas, think of different angles, tools, or approaches to achieve the same goal.
-
-OUTPUT: Only the formatted structure, no extra text.`;
+OUTPUT: Only the formatted structure above, no extra text or explanations.`;
 }
 
 

@@ -13,6 +13,38 @@ function stripMarkdown(text: string): string {
 }
 
 /**
+ * Normalizes task descriptions for duplicate detection
+ */
+function normalizeTaskDescription(text: string): string {
+  return stripMarkdown(text)
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+    .replace(/\s+/g, ' ')     // Normalize whitespace
+    .trim();
+}
+
+/**
+ * Checks if two task descriptions are similar (basic fuzzy matching)
+ */
+function areTasksSimilar(task1: string, task2: string, threshold: number = 0.8): boolean {
+  const normalized1 = normalizeTaskDescription(task1);
+  const normalized2 = normalizeTaskDescription(task2);
+
+  // Exact match after normalization
+  if (normalized1 === normalized2) return true;
+
+  // Simple word overlap check
+  const words1 = new Set(normalized1.split(' '));
+  const words2 = new Set(normalized2.split(' '));
+
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+
+  const similarity = intersection.size / union.size;
+  return similarity >= threshold;
+}
+
+/**
  * Parses a raw markdown-like string into a structured FullPlan object.
  * Can handle partial/incomplete plan strings during streaming.
  *
@@ -56,7 +88,7 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, expecte
   let dayCounter = 0;
   let hasWeeklyStructure = false;
   let totalTasksFound = 0;
-  const seenTasks = new Set<string>(); // Track unique task descriptions
+  const seenTasks: string[] = []; // Track unique task descriptions
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -112,9 +144,13 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, expecte
       const rawDescription = taskMatch[3].trim();
       const cleanDescription = stripMarkdown(rawDescription);
 
-      // Check for duplicate tasks and skip them
-      if (seenTasks.has(cleanDescription)) {
-        console.warn(`Skipping duplicate task: ${cleanDescription}`);
+      // Check for duplicate or very similar tasks and skip them
+      const isDuplicate = seenTasks.some(existingTask =>
+        areTasksSimilar(cleanDescription, existingTask, 0.85) // 85% similarity threshold
+      );
+
+      if (isDuplicate) {
+        console.warn(`Skipping duplicate/similar task: ${cleanDescription}`);
         continue;
       }
 
@@ -124,7 +160,7 @@ export const parsePlanString = (rawPlanString: string, userGoal: string, expecte
         completed: false,
       };
       currentObjective.dailyTasks.push(task);
-      seenTasks.add(cleanDescription);
+      seenTasks.push(cleanDescription);
       totalTasksFound++;
 
       continue;

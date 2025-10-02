@@ -14,6 +14,7 @@ export interface IPlanContext {
   streamingPlanText: string | null;
   streamingPlan: FullPlan | null;
   isLoading: boolean;
+  backgroundGenerationInProgress: boolean;
   error: string | null;
   selectedDuration: number | null;
   goal: string | null;
@@ -22,6 +23,7 @@ export interface IPlanContext {
     goal: string,
     onChunk?: (chunk: string) => void
   ) => Promise<void>;
+  startBackgroundGeneration: (goal: string) => void;
   setPlanFromString: (
     planString: string,
     originalGoal: string | undefined
@@ -52,6 +54,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   );
   const [streamingPlan, setStreamingPlan] = useState<FullPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [backgroundGenerationInProgress, setBackgroundGenerationInProgress] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDuration, setSelectedDurationState] = useState<number | null>(
     null
@@ -74,22 +77,45 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setStreamingPlanText(null);
     setStreamingPlan(null);
     setIsLoading(false);
+    setBackgroundGenerationInProgress(false);
     setError(null);
     setSelectedDurationState(null);
     setGoalState(null);
     setCurrentPlanIdState(null);
   };
 
+  const startBackgroundGeneration = (goal: string) => {
+    // Don't start if already generating
+    if (backgroundGenerationInProgress || isLoading) {
+      return;
+    }
+    setBackgroundGenerationInProgress(true);
+    // Start generation without blocking UI
+    generateNewPlan(goal, undefined, true).catch((error) => {
+      console.error("Background generation failed:", error);
+      setBackgroundGenerationInProgress(false);
+    });
+  };
+
   const generateNewPlan = async (
     goal: string,
-    onChunk?: (chunk: string) => void
+    onChunk?: (chunk: string) => void,
+    isBackground = false,
+    retryCount = 0
   ) => {
     const trimmedGoal = goal.trim();
     if (!trimmedGoal) {
       setError("Goal cannot be empty.");
       return;
     }
-    setIsLoading(true);
+
+    const maxRetries = 2;
+    const expectedTasks = selectedDuration || 30;
+
+    // Only set loading state for foreground generation
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     setError(null);
     setPlanState(null);
     setStreamingPlanText("");
@@ -141,6 +167,15 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
           });
         });
 
+        // Check if we need to retry due to insufficient tasks
+        if (totalTasks < expectedTasks * 0.9 && retryCount < maxRetries) {
+          console.warn(
+            `Insufficient tasks (${totalTasks}/${expectedTasks}), retrying... (attempt ${retryCount + 1}/${maxRetries + 1})`
+          );
+          // Retry with the same parameters
+          return generateNewPlan(trimmedGoal, onChunk, isBackground, retryCount + 1);
+        }
+
         if (selectedDuration && totalTasks !== selectedDuration) {
           console.warn(
             `Final validation: Task count mismatch: got ${totalTasks}, expected ${selectedDuration}`
@@ -187,6 +222,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
           }
         }
       } else {
+        // If parsing failed and we haven't retried, try again
+        if (retryCount < maxRetries) {
+          console.warn(`Plan parsing failed, retrying... (attempt ${retryCount + 1}/${maxRetries + 1})`);
+          return generateNewPlan(trimmedGoal, onChunk, isBackground, retryCount + 1);
+        }
+
         console.error(
           "Failed to parse the generated plan string. Raw string:",
           rawPlanString
@@ -197,6 +238,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         setPlanState(null);
       }
     } catch (err) {
+      // If it's a retryable error and we haven't maxed retries, try again
+      if (retryCount < maxRetries && (err as Error)?.message?.includes('generation')) {
+        console.warn(`Plan generation error, retrying... (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        return generateNewPlan(trimmedGoal, onChunk, isBackground, retryCount + 1);
+      }
+
       console.error("-----------------------------------------");
       console.error("Caught error during plan generation:");
       console.error("Error Object:", err);
@@ -210,7 +257,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       console.error("-----------------------------------------");
       setPlanState(null);
     } finally {
-      setIsLoading(false);
+      // Only clear loading state for foreground generation
+      if (!isBackground) {
+        setIsLoading(false);
+      } else {
+        setBackgroundGenerationInProgress(false);
+      }
     }
   };
 
@@ -367,11 +419,13 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     streamingPlanText,
     streamingPlan,
     isLoading,
+    backgroundGenerationInProgress,
     error,
     selectedDuration,
     goal,
     currentPlanId,
     generateNewPlan,
+    startBackgroundGeneration,
     setPlanFromString,
     setPlan,
     setSelectedDuration: setSelectedDurationState,
