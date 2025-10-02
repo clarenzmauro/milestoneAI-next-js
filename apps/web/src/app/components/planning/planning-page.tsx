@@ -3,8 +3,12 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { usePlan } from "../../contexts/plan-context";
 import CustomDurationModal from "../modals/custom-duration-modal";
+import SavedPlansModal from "../modals/saved-plans-modal";
 import BackgroundGradients from "../BackgroundGradients";
 import { timelineOptions } from "../../config/timeline-options";
+import { useQuery } from "convex/react";
+import { api } from "@milestoneAI-next-js/backend/convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
 
 const getCardStyles = (isSelected: boolean) => ({
   background: isSelected
@@ -20,10 +24,19 @@ const getCardStyles = (isSelected: boolean) => ({
 
 export default function PlanningPage() {
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
   const [selectedTimeline, setSelectedTimeline] = useState<
     number | "custom" | null
   >(null);
-  const { setSelectedDuration } = usePlan();
+  const { setSelectedDuration, setPlan, setCurrentPlanId, setGoal } = usePlan();
+  const { user, isLoaded } = useUser();
+
+  // Check if user has existing plans
+  const userPlans = useQuery(
+    api.plans.listPlans,
+    user?.id ? { userId: user.id } : "skip"
+  );
+  const hasExistingPlans = userPlans && userPlans.length > 0;
 
   const handleTimelineSelect = (duration: number | "custom") => {
     if (duration === "custom") {
@@ -36,6 +49,21 @@ export default function PlanningPage() {
   const handleCustomDurationConfirm = (days: number) => {
     setSelectedTimeline(days);
     setIsCustomModalOpen(false);
+  };
+
+  const handleSelectSavedPlan = (plan: any) => {
+    // Calculate the total duration from the plan structure
+    const totalDays = plan.monthlyMilestones?.reduce((total: number, month: any) => {
+      return total + month.weeklyObjectives?.reduce((monthTotal: number, week: any) => {
+        return monthTotal + (week.dailyTasks?.length || 0);
+      }, 0) || 0;
+    }, 0) || 0;
+
+    setPlan(plan);
+    setGoal(plan.goal);
+    setSelectedDuration(totalDays);
+    setCurrentPlanId(plan._id);
+    // The conditional rendering in app/page.tsx will handle showing the milestone page
   };
 
   const handleContinue = () => {
@@ -61,7 +89,7 @@ export default function PlanningPage() {
         }}
       >
         <nav
-          className="mx-auto flex max-w-7xl items-center px-6 py-4"
+          className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4"
           aria-label="Primary"
         >
           <div
@@ -70,6 +98,23 @@ export default function PlanningPage() {
           >
             MilestoneAI
           </div>
+          {hasExistingPlans && (
+            <button
+              onClick={() => setIsPlansModalOpen(true)}
+              className="inline-flex items-center rounded-full px-6 py-1.5 text-sm font-medium text-white shadow-md transition-colors motion-reduce:transition-none"
+              style={{
+                backgroundColor: 'var(--black)',
+                backgroundImage: 'var(--grad-cta), linear-gradient(var(--black), var(--black))',
+                backgroundRepeat: 'no-repeat, no-repeat',
+                backgroundSize: 'calc(100% - 12px) 1px, 100% 100%',
+                backgroundPosition: 'center 100%, 0 0',
+                border: 'none',
+              }}
+              title="View your saved plans"
+            >
+              View Your Plans
+            </button>
+          )}
         </nav>
       </header>
 
@@ -158,6 +203,12 @@ export default function PlanningPage() {
         isOpen={isCustomModalOpen}
         onClose={() => setIsCustomModalOpen(false)}
         onConfirm={handleCustomDurationConfirm}
+      />
+
+      <SavedPlansModal
+        isOpen={isPlansModalOpen}
+        onClose={() => setIsPlansModalOpen(false)}
+        onSelectPlan={handleSelectSavedPlan}
       />
     </main>
   );
