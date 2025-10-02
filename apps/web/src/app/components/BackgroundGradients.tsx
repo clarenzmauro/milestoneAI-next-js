@@ -2,7 +2,7 @@ export default function BackgroundGradients() {
   return (
     <>
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0"
         aria-hidden="true"
         style={{
           background:
@@ -10,7 +10,7 @@ export default function BackgroundGradients() {
         }}
       />
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0"
         aria-hidden="true"
         style={{
           background:
@@ -18,7 +18,7 @@ export default function BackgroundGradients() {
         }}
       />
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0"
         aria-hidden="true"
         style={{
           background:
