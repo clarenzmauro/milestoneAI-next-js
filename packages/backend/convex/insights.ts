@@ -152,7 +152,7 @@ export const recomputeInsightsForPlan = action({
       ? messages.slice(-3).map(m => `${m.role}: ${m.content}`).join(' | ')
       : 'fresh_plan';
 
-    const prompt = `You are an expert project coach providing personalized insights. Use these exact calculated metrics to create 3-5 meaningful insights:
+    const prompt = `You are an expert project coach providing personalized insights. Use these exact calculated metrics to create exactly 2 concise insights:
 
 GOAL: "${plan.goal}"
 
@@ -165,7 +165,7 @@ CURRENT STATUS:
 - Plan Status: ${insightPriorities.progressStatus.replace('_', ' ')}
 - Activity Level: ${recentChat === 'fresh_plan' ? 'New plan just created' : recentChat}
 
-Generate insights in this JSON format:
+Generate exactly 2 insights in this JSON format:
 [{"kind": "progress|milestone|motivation|tip|warning|celebration", "text": "insight message", "score": 1-10}]
 
 Guidelines for Professional Insights:
@@ -214,7 +214,7 @@ Return only valid JSON array, no extra text or formatting.`;
       const generatedInsights: Array<{ kind: string; text: string; score?: number }> = JSON.parse(text.trim());
 
       // Validate and save insights
-      for (const ins of generatedInsights.slice(0, 5)) { // Limit to 5 insights max
+      for (const ins of generatedInsights.slice(0, 2)) { // Limit to 2 insights max
         if (ins.kind && ins.text && typeof ins.text === 'string' && ins.text.length > 10) {
           await ctx.runMutation(api.insights.insertInsight, {
             userId,

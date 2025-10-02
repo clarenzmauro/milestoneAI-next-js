@@ -41,6 +41,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const [selectedTask, setSelectedTask] = useState<DailyTask | null>(null);
   const [selectedTaskIndices, setSelectedTaskIndices] = useState<{monthIndex: number, weekIndex: number, taskDay: number} | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
 
   // Use streaming plan if available, otherwise use regular plan
   const displayPlan = streamingPlan || plan;
@@ -285,6 +286,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
 Context: You're chatting about this task: "${task.description}"
 This task is part of a 90-day plan with the goal: "${plan.goal}"
+Current task status: ${task.completed ? "COMPLETED" : "NOT COMPLETED"}
 
 IMPORTANT: Analyze the user's message carefully.
 
@@ -563,36 +565,46 @@ IMPORTANT: Analyze the user's message carefully.
 
                         {/* Tasks */}
                         <div className="space-y-1">
-                          {day.tasks.map((task, index) => (
-                            <div
-                              key={task.day}
-                              className="cursor-pointer"
-                              onClick={() => handleTaskClick(task, monthIndex, weekIndex, task.day)}
-                            >
-                              <div className="flex items-start space-x-1 group">
-                                <div
-                                  className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
-                                    task.completed
-                                      ? "bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]"
-                                      : "border-[var(--border-subtle)] group-hover:border-[var(--accent-cyan,#22D3EE)]"
-                                  }`}
-                                >
-                                  {task.completed && (
-                                    <FaCheck className="text-white text-xs" />
-                                  )}
+                          {day.tasks.map((task, index) => {
+                            const isHovered = hoveredTaskId === `${monthIndex}-${weekIndex}-${task.day}`;
+                            return (
+                              <div
+                                key={task.day}
+                                className="cursor-pointer"
+                                onClick={() => handleTaskClick(task, monthIndex, weekIndex, task.day)}
+                                onMouseEnter={() => setHoveredTaskId(`${monthIndex}-${weekIndex}-${task.day}`)}
+                                onMouseLeave={() => setHoveredTaskId(null)}
+                              >
+                                <div className="flex items-start space-x-1">
+                                  <div
+                                    className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer ${
+                                      task.completed
+                                        ? "bg-[var(--accent-cyan,#22D3EE)] border-[var(--accent-cyan,#22D3EE)]"
+                                        : `border-[var(--border-subtle)] ${isHovered ? "border-[var(--accent-cyan,#22D3EE)]" : ""}`
+                                    }`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleTaskToggle(task);
+                                    }}
+                                    title={task.completed ? "Mark incomplete" : "Mark complete"}
+                                  >
+                                    {task.completed && (
+                                      <FaCheck className="text-white text-xs" />
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`text-xs leading-tight transition-colors ${
+                                      task.completed
+                                        ? "line-through text-[var(--text-secondary)]"
+                                        : `${isHovered ? "text-[var(--accent-cyan)]" : "text-[var(--text-inverse)]"}`
+                                    }`}
+                                  >
+                                    {task.description}
+                                  </span>
                                 </div>
-                                <span
-                                  className={`text-xs leading-tight group-hover:text-[var(--accent-cyan)] transition-colors ${
-                                    task.completed
-                                      ? "line-through text-[var(--text-secondary)]"
-                                      : "text-[var(--text-inverse)]"
-                                  }`}
-                                >
-                                  {task.description}
-                                </span>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         {/* Task count indicator for days with tasks */}
