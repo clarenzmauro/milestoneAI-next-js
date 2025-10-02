@@ -3,6 +3,7 @@ import { FaStickyNote, FaPlus, FaTrash, FaEdit, FaSave, FaTimes } from 'react-ic
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@milestoneAI-next-js/backend/convex/_generated/api';
 import type { Id } from '@milestoneAI-next-js/backend/convex/_generated/dataModel';
+import { usePlan } from '../../contexts/plan-context';
 
 interface NoteDoc {
   _id: Id<'notes'>;
@@ -15,7 +16,8 @@ interface NoteDoc {
 }
 
 const QuickNotes: React.FC = () => {
-  const notesPage = useQuery(api.notes.listNotes, { limit: 100 });
+  const { currentPlanId } = usePlan();
+  const notesPage = useQuery(api.notes.listNotes, { planId: currentPlanId || undefined, limit: 100 });
   const addNote = useMutation(api.notes.addNote);
   const updateNote = useMutation(api.notes.updateNote);
   const deleteNote = useMutation(api.notes.deleteNote);
@@ -30,9 +32,10 @@ const QuickNotes: React.FC = () => {
   const notes: NoteDoc[] = notesPage?.page ?? [];
 
   const handleAddNote = async () => {
+    if (!currentPlanId) return;
     if (!newNoteTitle.trim() && !newNoteContent.trim()) return;
     const text = [newNoteTitle.trim(), newNoteContent.trim()].filter(Boolean).join('\n');
-    await addNote({ text, pinned: false });
+    await addNote({ planId: currentPlanId, text, pinned: false });
     setNewNoteTitle('');
     setNewNoteContent('');
     setIsAddingNote(false);
@@ -91,7 +94,8 @@ const QuickNotes: React.FC = () => {
           </div>
           <button
             onClick={() => setIsAddingNote(true)}
-            className="flex items-center space-x-2 px-3 py-2 text-white rounded-lg text-sm font-medium shadow-md transition-colors motion-reduce:transition-none"
+            disabled={!currentPlanId}
+            className="flex items-center space-x-2 px-3 py-2 text-white rounded-lg text-sm font-medium shadow-md transition-colors motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'var(--black)',
               backgroundImage: 'var(--grad-cta), linear-gradient(var(--black), var(--black))',
@@ -164,7 +168,13 @@ const QuickNotes: React.FC = () => {
 
         {/* Notes List */}
         <div className="p-6">
-          {notes.length === 0 ? (
+          {!currentPlanId ? (
+            <div className="text-center py-8 text-[var(--text-muted)]">
+              <FaStickyNote className="text-4xl mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">Plan in progress</p>
+              <p className="text-sm">Notes will appear here once your plan is ready</p>
+            </div>
+          ) : notes.length === 0 ? (
             <div className="text-center py-8 text-[var(--text-muted)]">
               <FaStickyNote className="text-4xl mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium mb-2">No notes yet</p>
