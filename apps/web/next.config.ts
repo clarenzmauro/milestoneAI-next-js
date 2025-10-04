@@ -53,8 +53,8 @@ const nextConfig: NextConfig = {
           "font-src 'self' data: https:",
           "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com https://generativelanguage.googleapis.com https://*.googleapis.com https://clerk-telemetry.com",
           "worker-src 'self' blob:",
-          // Allow Clerk iFrames to render auth widgets
-          "frame-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev",
+          // Allow Clerk iFrames and Cloudflare Turnstile to render auth widgets
+          "frame-src 'self' https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com",
           "frame-ancestors 'none'",
           "form-action 'self'",
           "base-uri 'self'",
